@@ -2027,6 +2027,11 @@ body {
     color: var(--secondary);
 }
 
+.powerup-btn.pu-devil:hover {
+    border-color: #805ad5;
+    color: #805ad5;
+}
+
 .powerup-btn.pu-star.active {
     background: linear-gradient(135deg, var(--accent), var(--secondary));
     border-color: transparent;
@@ -2036,6 +2041,13 @@ body {
 
 .powerup-btn.pu-thunder.active {
     background: linear-gradient(135deg, #3182ce, #2b6cb0);
+    border-color: transparent;
+    color: #fff;
+    transform: scale(1.05);
+}
+
+.powerup-btn.pu-devil.active {
+    background: linear-gradient(135deg, #805ad5, #44337a);
     border-color: transparent;
     color: #fff;
     transform: scale(1.05);

@@ -239,7 +239,7 @@ function joinGame(ws, msg) {
     if (!playerName || playerName.trim().length === 0) { ws.send(JSON.stringify({ type: 'error', message: 'Vui lòng nhập tên!' })); return; }
 
     const id = generateId();
-    const player = { id, name: playerName.trim(), ws, score: 0, correctAnswers: 0, wrongAnswers: 0, answers: [], joinedAt: Date.now(), powerUps: { star: 2, thunder: 1 } };
+    const player = { id, name: playerName.trim(), ws, score: 0, correctAnswers: 0, wrongAnswers: 0, answers: [], joinedAt: Date.now(), powerUps: { star: 2, thunder: 1, devil: 1 } };
     game.players.set(id, player);
     player.ws = ws;
 
@@ -296,7 +296,7 @@ function submitAnswer(ws, msg) {
     const player = game.players.get(playerId);
     if (player.answers[game.currentQuestion] !== undefined) return;
 
-    let powerUp = msg.powerUp === 'star' || msg.powerUp === 'thunder' ? msg.powerUp : null;
+    let powerUp = msg.powerUp === 'star' || msg.powerUp === 'thunder' || msg.powerUp === 'devil' ? msg.powerUp : null;
     if (powerUp && player.powerUps[powerUp] <= 0) powerUp = null;
     const correct = msg.answerIndex === questions[game.currentQuestion].c;
     player.answers[game.currentQuestion] = msg.answerIndex;
@@ -306,15 +306,18 @@ function submitAnswer(ws, msg) {
     let thunderHits = [];
     if (correct) {
         const elapsedSeconds = (Date.now() - (game.questionStartTime || Date.now())) / 1000;
-        const speedRatio = Math.max(0, Math.min(1, 1 - elapsedSeconds / game.timerDuration));
+        const speedRatio = Math.max(0, Math.min(1, 1 - Math.pow(elapsedSeconds / game.timerDuration, 2)));
         gained = Math.round(MAX_POINTS_PER_QUESTION * speedRatio);
         if (powerUp === 'star') gained *= 2;
+        else if (powerUp === 'devil') gained = Math.round(2500 * speedRatio);
         player.score += gained;
         player.correctAnswers++;
     } else {
         player.wrongAnswers++;
         if (powerUp === 'thunder') {
             player.score = Math.max(0, player.score - 400);
+        } else if (powerUp === 'devil') {
+            player.score = Math.max(0, player.score - 3500);
         }
     }
 

@@ -13,7 +13,7 @@ let potentialStartTime = 0;
 let potentialDuration = 0;
 let selectedPowerUp = null;
 let toastTimer = null;
-let powerUpsLeft = { star: 2, thunder: 1 };
+let powerUpsLeft = { star: 2, thunder: 1, devil: 1 };
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -110,7 +110,7 @@ function startPotentialTimer(seconds) {
     el.textContent = '1000';
     potentialInterval = setInterval(() => {
         const elapsed = (Date.now() - potentialStartTime) / 1000;
-        const ratio = Math.max(0, Math.min(1, 1 - elapsed / potentialDuration));
+        const ratio = Math.max(0, Math.min(1, 1 - Math.pow(elapsed / potentialDuration, 2)));
         el.textContent = Math.round(1000 * ratio);
     }, 100);
 }
@@ -164,33 +164,42 @@ function selectPowerUp(type) {
 
     const star = document.getElementById('pu-star');
     const thunder = document.getElementById('pu-thunder');
+    const devil = document.getElementById('pu-devil');
     const hint = document.getElementById('powerup-hint');
     star.classList.toggle('active', selectedPowerUp === 'star');
     thunder.classList.toggle('active', selectedPowerUp === 'thunder');
+    devil.classList.toggle('active', selectedPowerUp === 'devil');
 
     if (selectedPowerUp === 'star') hint.textContent = `⭐ Trả lời đúng được x2 điểm (còn ${powerUpsLeft.star} lần)`;
     else if (selectedPowerUp === 'thunder') hint.textContent = '⚡ Đúng: trừ 400đ người trên 1 hạng · Sai: tự trừ 400đ';
+    else if (selectedPowerUp === 'devil') hint.textContent = '🌑 Đúng: được tối đa 2500đ · Sai: bị trừ 3500đ';
     else hint.textContent = '';
 }
 
 function resetPowerUps() {
     const star = document.getElementById('pu-star');
     const thunder = document.getElementById('pu-thunder');
+    const devil = document.getElementById('pu-devil');
     const hint = document.getElementById('powerup-hint');
     star.classList.remove('active');
     thunder.classList.remove('active');
+    devil.classList.remove('active');
     star.disabled = powerUpsLeft.star <= 0;
     thunder.disabled = powerUpsLeft.thunder <= 0;
+    devil.disabled = powerUpsLeft.devil <= 0;
     star.textContent = `⭐ x2 điểm${powerUpsLeft.star > 0 ? ` (${powerUpsLeft.star})` : ''}`;
     thunder.textContent = `⚡ Trừ hạng trên${powerUpsLeft.thunder > 0 ? ` (${powerUpsLeft.thunder})` : ''}`;
+    devil.textContent = `🌑 Ngôi sao đen${powerUpsLeft.devil > 0 ? ` (${powerUpsLeft.devil})` : ''}`;
     hint.textContent = '';
 }
 
 function setPowerUpsDisabled(disabled) {
     const star = document.getElementById('pu-star');
     const thunder = document.getElementById('pu-thunder');
+    const devil = document.getElementById('pu-devil');
     star.disabled = disabled || powerUpsLeft.star <= 0;
     thunder.disabled = disabled || powerUpsLeft.thunder <= 0;
+    devil.disabled = disabled || powerUpsLeft.devil <= 0;
 }
 
 function showToast(text, ms = 2000) {
@@ -228,6 +237,9 @@ function onAnswerResult(msg) {
 
     if (msg.powerUp === 'star' && msg.gained > 0) {
         showToast('⭐ Ngôi sao hi vọng: điểm x2!');
+    } else if (msg.powerUp === 'devil') {
+        if (msg.correct) showToast(`🌑 Ngôi sao đen: được ${msg.gained} điểm!`);
+        else showToast('🌑 Ngôi sao đen: sai — bạn bị trừ 3500 điểm!');
     } else if (msg.powerUp === 'thunder') {
         if (msg.correct) {
             const n = msg.thunderHits ? msg.thunderHits.length : 0;
