@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xã hội chủ nghĩa - Host</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700&family=Poppins:wght@500;600;700;800&family=Nunito:wght@600;700;800&family=Space+Grotesk:wght@500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -23,6 +23,7 @@
         <div id="lobby-screen" class="screen active">
             <div class="host-lobby-card">
                 <div class="lobby-header">
+                    <div class="lobby-mascot" data-theme-char>🧚</div>
                     <h1 class="host-title">Xã hội chủ nghĩa</h1>
                     <p class="host-subtitle">Máy chủ trò chơi</p>
                 </div>
@@ -178,6 +179,19 @@
         </div>
     </div>
 
+    <button class="theme-fab" id="theme-fab" onclick="toggleThemeModal()" title="Chọn skin">💜</button>
+
+    <div class="theme-modal" id="theme-modal" onclick="closeThemeModal(event)">
+        <div class="theme-modal-card">
+            <div class="theme-modal-header">
+                <span class="theme-modal-title">🎨 Chọn Skin</span>
+                <span class="theme-modal-close" onclick="closeThemeModal()">✕</span>
+            </div>
+            <div class="theme-grid" id="theme-grid"></div>
+        </div>
+    </div>
+
+    <script src="theme.js"></script>
     <script src="host.js"></script>
 </body>
 </html>

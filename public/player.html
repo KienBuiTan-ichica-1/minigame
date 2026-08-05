@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Xã hội chủ nghĩa - Trả lời</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700&family=Poppins:wght@500;600;700;800&family=Nunito:wght@600;700;800&family=Space+Grotesk:wght@500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="player-body">
@@ -21,7 +21,10 @@
         <!-- JOIN SCREEN -->
         <div id="join-screen" class="screen active">
             <div class="join-card">
-                <div class="join-logo">📚</div>
+                <div class="theme-mascot-wrap">
+                    <div class="theme-mascot-glow"></div>
+                    <div class="join-logo" data-theme-char>🧚</div>
+                </div>
                 <h1 class="join-title">Xã hội chủ nghĩa</h1>
                 <p class="join-subtitle">Nhập tên để tham gia</p>
 
@@ -46,6 +49,7 @@
         <!-- WAITING SCREEN -->
         <div id="waiting-screen" class="screen">
             <div class="waiting-card">
+                <div class="waiting-mascot" data-theme-char>🧚</div>
                 <div class="waiting-spinner"></div>
                 <h2 class="waiting-title">Đang chờ...</h2>
                 <p class="waiting-subtitle">Chờ người tổ chức bắt đầu trò chơi</p>
@@ -182,6 +186,18 @@
 
     <div id="player-toast" class="player-toast"></div>
 
+    <button class="theme-fab" id="theme-fab" onclick="toggleThemeModal()" title="Chọn skin">💜</button>
+
+    <div class="theme-modal" id="theme-modal" onclick="closeThemeModal(event)">
+        <div class="theme-modal-card">
+            <div class="theme-modal-header">
+                <span class="theme-modal-title">🎨 Chọn Skin</span>
+                <span class="theme-modal-close" onclick="closeThemeModal()">✕</span>
+            </div>
+            <div class="theme-grid" id="theme-grid"></div>
+        </div>
+    </div>
+
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const urlGameCode = (urlParams.get('game') || '').toUpperCase();
@@ -189,6 +205,7 @@
             document.getElementById('code-input').value = urlGameCode;
         }
     </script>
-<script src="player.js"></script>
+    <script src="theme.js"></script>
+    <script src="player.js"></script>
 </body>
 </html>

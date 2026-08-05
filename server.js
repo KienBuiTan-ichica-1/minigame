@@ -195,6 +195,7 @@ wss.on('connection', (ws) => {
             case 'createGame': createGame(ws); break;
             case 'joinGame': joinGame(ws, msg); break;
             case 'startGame': startGame(ws); break;
+            case 'setTheme': onSetTheme(ws, msg); break;
             case 'selectPowerUp': onSelectPowerUp(ws, msg); break;
             case 'submitAnswer': submitAnswer(ws, msg); break;
             case 'nextQuestion': nextQuestion(ws); break;
@@ -236,6 +237,7 @@ function createGame(ws) {
         players: new Map(),
         currentQuestion: -1,
         state: 'lobby',
+        theme: null,
         questionStartTime: null,
         answeredCount: 0,
         timerDuration: 20,
@@ -263,9 +265,18 @@ function joinGame(ws, msg) {
     game.players.set(id, player);
     player.ws = ws;
 
-    ws.send(JSON.stringify({ type: 'joined', id, gameCode, playerName: player.name, totalQuestions: questions.length, powerUps: player.powerUps }));
+    ws.send(JSON.stringify({ type: 'joined', id, gameCode, playerName: player.name, totalQuestions: questions.length, powerUps: player.powerUps, theme: game.theme }));
 
     game.host.send(JSON.stringify({ type: 'playerJoined', count: game.players.size, playerId: id, playerName: player.name }));
+}
+
+const ALLOWED_THEMES = ['pink', 'lavender', 'nature', 'dark', 'luxury'];
+
+function onSetTheme(ws, msg) {
+    const game = findGameByHost(ws);
+    if (!game || !ALLOWED_THEMES.includes(msg.theme)) return;
+    game.theme = msg.theme;
+    broadcastToPlayers(game.code, 'themeChanged', { theme: game.theme });
 }
 
 function startGame(ws) {

@@ -130,6 +130,7 @@ https://abc123.ngrok-free.app/player.html?game=<MÃ_PHÒNG>
 - ✅ **Top 10 leaderboard** real-time (giống Kahoot)
 - ✅ 4 nút màu (đỏ 🔴 xanh dương 🔵 vàng 🟡 xanh lá 🟢)
 - ✅ Đếm ngược **10 giây** chọn item đầu mỗi câu + **20 giây** trả lời
+- ✅ **Chọn Skin (Theme):** 5 skin (🌸 Pink Beauty, 💜 Lavender, 🌿 Nature, 🌙 Dark Beauty, ✨ Luxury Gold) đổi màu nền, font, màu nút, icon nhân vật — Host đổi skin sẽ áp cho cả phòng
 - ✅ Chọn item không giới hạn số lượng — có thể chọn **nhiều item cùng lúc** (miễn item đó còn lượt sử dụng) và phát huy **ngay trên câu đang chơi**
 - ✅ Điểm mỗi câu bắt đầu **1000**, giảm dần theo thời gian (chậm hơn — giữ điểm cao lâu, cuối giờ mới tụt nhanh)
 - ✅ **⭐ Ngôi sao hi vọng:** trả lời đúng được **x2 điểm** — mỗi người dùng được **2 lần/cả game**
@@ -141,6 +142,29 @@ https://abc123.ngrok-free.app/player.html?game=<MÃ_PHÒNG>
 - ✅ Podium 3 vị trí cao nhất khi kết thúc
 - ✅ Giữ nguyên giao diện, câu hỏi & hiệu ứng từ bản gốc
 
+## 🎨 Chọn Skin (Theme)
+
+Nhấn nút **🎨 (góc dưới bên phải)** trên màn hình Host hoặc Người chơi để mở bảng chọn skin.
+
+| Skin | Icon | Nhân vật | Màu chủ đạo |
+|------|------|----------|-------------|
+| 🌸 **Pink Beauty** | 🌸 | 🦄 | Hồng ngọt |
+| 💜 **Lavender** | 💜 | 🧚 | Tím oải hương |
+| 🌿 **Nature** | 🌿 | 🐻 | Xanh lá cây |
+| 🌙 **Dark Beauty** | 🌙 | 🦇 | Tối neon |
+| ✨ **Luxury Gold** | ✨ | 👑 | Vàng sang trọng |
+
+Mỗi skin sẽ đổi đồng loạt:
+- **Màu nền** (body + nền màn hình trả lời)
+- **Font chữ** (tiêu đề + nút bấm)
+- **Màu nút & màu nhấn** (gradient, chip item, thanh đếm giờ...)
+- **Icon nhân vật** (mascot) kèm hiệu ứng pop khi chọn
+- **Đồng hồ đếm ngược** của Host đổi màu gradient theo skin
+
+Cách hoạt động:
+- Người chơi chọn skin riêng → **lưu trên thiết bị của họ** (localStorage)
+- **Host** chọn skin → **tự động áp cho tất cả người chơi trong phòng** (qua WebSocket) ngay lập tức
+
 ## 📁 Cấu trúc file
 
 | File | Chức năng |
@@ -149,6 +173,7 @@ https://abc123.ngrok-free.app/player.html?game=<MÃ_PHÒNG>
 | `questions.js` | Bộ câu hỏi (dùng chung) |
 | `public/host.html` + `host.js` | Giao diện Host |
 | `public/player.html` + `player.js` | Giao diện Người chơi |
+| `public/theme.js` | Hệ thống Skin/Theme (5 skin + chọn nhân vật) |
 | `public/style.css` | Định dạng giao diện |
 | `nhanvaodaydesudung.html` | Bản cũ (chơi đơn, không cần server) |
 

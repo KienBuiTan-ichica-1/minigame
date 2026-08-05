@@ -31,6 +31,7 @@ function connect() {
         switch (msg.type) {
             case 'joined': onJoined(msg); break;
             case 'error': showError(msg.message); break;
+            case 'themeChanged': onThemeChanged(msg); break;
             case 'gameStarted': onGameStarted(msg); break;
             case 'powerUpPhase': onPowerUpPhase(msg); break;
             case 'newQuestion': onNewQuestion(msg); break;
@@ -64,7 +65,16 @@ function onJoined(msg) {
     playerId = msg.id;
     totalQuestions = msg.totalQuestions;
     if (msg.powerUps) powerUpsLeft = { ...msg.powerUps };
+    if (msg.theme && window.theme) {
+        window.theme.apply(msg.theme);
+    }
     showScreen('waiting-screen');
+}
+
+function onThemeChanged(msg) {
+    if (window.theme && msg.theme) {
+        window.theme.apply(msg.theme);
+    }
 }
 
 function onGameStarted(msg) {

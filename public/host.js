@@ -37,6 +37,9 @@ function onGameCreated(msg) {
     document.getElementById('game-code').textContent = gameCode;
     loadQR(gameCode);
     loadJoinUrl(gameCode);
+    if (window.theme) {
+        ws.send(JSON.stringify({ type: 'setTheme', theme: window.theme.current() }));
+    }
 }
 
 function loadQR(code) {

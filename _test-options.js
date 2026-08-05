@@ -14,7 +14,13 @@ function connect(name, id, plan) {
     ws.on('open', () => ws.send(JSON.stringify({ type: 'joinGame', gameCode, playerName: name })));
     ws.on('message', (raw) => {
         const msg = JSON.parse(raw);
-if (msg.type === 'powerUpPhase') {
+        if (msg.type === 'joined') {
+            console.log(`${name} joined → theme=${msg.theme}`);
+        }
+        if (msg.type === 'themeChanged') {
+            console.log(`${name} themeChanged → theme=${msg.theme}`);
+        }
+        if (msg.type === 'powerUpPhase') {
             const qi = msg.questionIndex;
             const mine = plan[qi];
             const powerUps = mine && mine.pu ? (Array.isArray(mine.pu) ? mine.pu : [mine.pu]) : [];
@@ -47,12 +53,14 @@ if (msg.type === 'powerUpPhase') {
         const msg = JSON.parse(raw);
         if (msg.type === 'gameCreated') {
             gameCode = msg.gameCode;
-connect('P_A', 0, { 0: { pu: 'reduce' }, 1: null, 2: { pu: 'shield' } });
+            host.send(JSON.stringify({ type: 'setTheme', theme: 'dark' }));
+            connect('P_A', 0, { 0: { pu: 'reduce' }, 1: null, 2: { pu: 'shield' } });
             connect('P_B', 1, { 0: null, 1: null, 2: { pu: null, pickFake: true } });
             connect('P_C', 2, { 0: null, 1: { pu: 'expand' }, 2: null });
         }
         if (msg.type === 'playerJoined' && msg.count === 3) {
-host.send(JSON.stringify({ type: 'startGame' }));
+            host.send(JSON.stringify({ type: 'setTheme', theme: 'pink' }));
+            host.send(JSON.stringify({ type: 'startGame' }));
         }
         if (msg.type === 'hostQuestionResult') {
             console.log('hostQuestionResult Q' + msg.questionIndex, '| dist:', msg.answerDistribution.join(','), '|', msg.leaderboard.map(p => `${p.name}:${p.score}`).join(' '));
