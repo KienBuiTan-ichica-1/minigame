@@ -6,7 +6,8 @@ let timerInterval = null;
 let isShowingAnswer = false;
 
 function connect() {
-    ws = new WebSocket(`ws://${window.location.host}`);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}`);
     ws.onopen = () => { createGame(); };
     ws.onmessage = (e) => {
         const msg = JSON.parse(e.data);
@@ -34,6 +35,7 @@ function onGameCreated(msg) {
     totalQuestions = msg.totalQuestions;
     document.getElementById('game-code').textContent = gameCode;
     loadQR(gameCode);
+    loadJoinUrl(gameCode);
 }
 
 function loadQR(code) {
@@ -42,6 +44,24 @@ function loadQR(code) {
         .then(dataUrl => {
             document.getElementById('qr-container').innerHTML = `<img src="${dataUrl}" alt="QR Code" class="qr-image">`;
         });
+}
+
+function loadJoinUrl(code) {
+    fetch(`/api/url?code=${code}`)
+        .then(r => r.text())
+        .then(url => {
+            document.getElementById('join-link').textContent = url;
+        });
+}
+
+function copyJoinLink() {
+    const el = document.getElementById('join-link');
+    if (!el || !el.textContent) return;
+    navigator.clipboard.writeText(el.textContent).then(() => {
+        const btn = document.getElementById('btn-copy-link');
+        btn.textContent = 'Đã sao chép!';
+        setTimeout(() => { btn.textContent = 'Sao chép link'; }, 2000);
+    });
 }
 
 function onPlayerJoined(msg) {
@@ -283,6 +303,7 @@ function resetGame() {
     document.getElementById('player-count-badge').textContent = '0';
     document.getElementById('btn-start-game').disabled = true;
     document.getElementById('game-code').textContent = '------';
+    document.getElementById('join-link').textContent = '...';
     document.getElementById('qr-container').innerHTML = '<div class="qr-loading">Đang tạo QR...</div>';
     showScreen('lobby-screen');
     setTimeout(connect, 500);

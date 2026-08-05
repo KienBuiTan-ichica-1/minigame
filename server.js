@@ -21,9 +21,14 @@ function getLocalIP() {
 let cachedPublicURL = '';
 
 function getPublicBaseURL() {
+    if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/$/, '');
     if (cachedPublicURL) return cachedPublicURL;
     const localIP = getLocalIP();
     return `http://${localIP}:${PORT}`;
+}
+
+function getPlayerURL(gameCode) {
+    return `${getPublicBaseURL()}/player.html?game=${gameCode}`;
 }
 
 function detectNgrokURL() {
@@ -73,6 +78,18 @@ function generateId() {
 const server = http.createServer((req, res) => {
     const url = req.url.split('?')[0];
 
+    if (url === '/api/url') {
+        const gameCode = new URL(req.url, 'http://localhost').searchParams.get('code');
+        if (!gameCode || !games.has(gameCode)) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end('Not found');
+            return;
+        }
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(getPlayerURL(gameCode));
+        return;
+    }
+
     if (url === '/api/qr') {
         const gameCode = new URL(req.url, 'http://localhost').searchParams.get('code');
         if (!gameCode || !games.has(gameCode)) {
@@ -80,8 +97,7 @@ const server = http.createServer((req, res) => {
             res.end('Not found');
             return;
         }
-        const baseURL = getPublicBaseURL();
-        const playerUrl = `${baseURL}/player.html?game=${gameCode}`;
+        const playerUrl = getPlayerURL(gameCode);
         QRCode.toDataURL(playerUrl, { width: 300, margin: 2, color: { dark: '#2d3748', light: '#ffffff' } }, (err, dataUrl) => {
             if (err) {
                 res.writeHead(500);
@@ -424,7 +440,10 @@ server.listen(PORT, () => {
     console.log(`   http://${localIP}:${PORT}`);
     console.log(`📱 Điện thoại cùng mạng truy cập:`);
     console.log(`   http://${localIP}:${PORT}/player.html`);
-    if (process.env.NGROK_URL) {
+    if (process.env.PUBLIC_URL) {
+        console.log(`🌐 Link công khai (mọi thiết bị mọi mạng):`);
+        console.log(`   ${process.env.PUBLIC_URL}/player.html`);
+    } else if (process.env.NGROK_URL) {
         console.log(`📱 Điện thoại mạng khác (qua ngrok):`);
         console.log(`   ${process.env.NGROK_URL}/player.html`);
     }

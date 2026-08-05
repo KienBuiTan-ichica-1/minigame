@@ -1312,6 +1312,51 @@ body {
     color: var(--text-light);
 }
 
+.join-link-section {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.join-link-label {
+    font-size: 0.85em;
+    font-weight: 700;
+    color: var(--text-light);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.join-link {
+    font-size: 0.85em;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--bg-main);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    word-break: break-all;
+    font-family: 'Courier New', monospace;
+}
+
+.btn-copy-link {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    padding: 8px 24px;
+    border-radius: 30px;
+    font-size: 0.95em;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-copy-link:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
 .player-list-section {
     background: var(--bg-main);
     border-radius: 20px;

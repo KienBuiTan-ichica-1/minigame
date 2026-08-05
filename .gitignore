@@ -1,4 +1,5 @@
 node_modules/
 npm-debug.log*
+gcm-diagnose.log
 .env
 .DS_Store
