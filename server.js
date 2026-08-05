@@ -239,11 +239,11 @@ function joinGame(ws, msg) {
     if (!playerName || playerName.trim().length === 0) { ws.send(JSON.stringify({ type: 'error', message: 'Vui lòng nhập tên!' })); return; }
 
     const id = generateId();
-    const player = { id, name: playerName.trim(), ws, score: 0, correctAnswers: 0, wrongAnswers: 0, answers: [], joinedAt: Date.now() };
+    const player = { id, name: playerName.trim(), ws, score: 0, correctAnswers: 0, wrongAnswers: 0, answers: [], joinedAt: Date.now(), powerUps: { star: 2, thunder: 1 } };
     game.players.set(id, player);
     player.ws = ws;
 
-    ws.send(JSON.stringify({ type: 'joined', id, gameCode, playerName: player.name, totalQuestions: questions.length }));
+    ws.send(JSON.stringify({ type: 'joined', id, gameCode, playerName: player.name, totalQuestions: questions.length, powerUps: player.powerUps }));
 
     game.host.send(JSON.stringify({ type: 'playerJoined', count: game.players.size, playerId: id, playerName: player.name }));
 }
@@ -296,7 +296,8 @@ function submitAnswer(ws, msg) {
     const player = game.players.get(playerId);
     if (player.answers[game.currentQuestion] !== undefined) return;
 
-    const powerUp = msg.powerUp === 'star' || msg.powerUp === 'thunder' ? msg.powerUp : null;
+    let powerUp = msg.powerUp === 'star' || msg.powerUp === 'thunder' ? msg.powerUp : null;
+    if (powerUp && player.powerUps[powerUp] <= 0) powerUp = null;
     const correct = msg.answerIndex === questions[game.currentQuestion].c;
     player.answers[game.currentQuestion] = msg.answerIndex;
     game.answeredCount++;
@@ -320,7 +321,7 @@ function submitAnswer(ws, msg) {
     if (correct && powerUp === 'thunder') {
         const leaderboard = buildLeaderboard(game);
         const myPos = leaderboard.findIndex(p => p.id === playerId);
-        const targets = leaderboard.slice(0, myPos).slice(-3);
+        const targets = myPos > 0 ? [leaderboard[myPos - 1]] : [];
         for (const t of targets) {
             const target = game.players.get(t.id);
             target.score = Math.max(0, target.score - 400);
@@ -334,6 +335,8 @@ function submitAnswer(ws, msg) {
         }
     }
 
+    if (powerUp) player.powerUps[powerUp]--;
+
     const result = {
         type: 'answerResult',
         correct,
@@ -341,6 +344,7 @@ function submitAnswer(ws, msg) {
         score: player.score,
         gained,
         powerUp,
+        powerUpsRemaining: { ...player.powerUps },
     };
     if (correct && powerUp === 'thunder') result.thunderHits = thunderHits;
     if (!correct && powerUp === 'thunder') result.thunderPenalty = 400;

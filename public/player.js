@@ -13,6 +13,7 @@ let potentialStartTime = 0;
 let potentialDuration = 0;
 let selectedPowerUp = null;
 let toastTimer = null;
+let powerUpsLeft = { star: 2, thunder: 1 };
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -59,6 +60,7 @@ function showScreen(id) {
 function onJoined(msg) {
     playerId = msg.id;
     totalQuestions = msg.totalQuestions;
+    if (msg.powerUps) powerUpsLeft = { ...msg.powerUps };
     showScreen('waiting-screen');
 }
 
@@ -157,6 +159,7 @@ function playerSelect(index, btn) {
 
 function selectPowerUp(type) {
     if (!isAnswering) return;
+    if (powerUpsLeft[type] <= 0) return;
     selectedPowerUp = selectedPowerUp === type ? null : type;
 
     const star = document.getElementById('pu-star');
@@ -165,8 +168,8 @@ function selectPowerUp(type) {
     star.classList.toggle('active', selectedPowerUp === 'star');
     thunder.classList.toggle('active', selectedPowerUp === 'thunder');
 
-    if (selectedPowerUp === 'star') hint.textContent = '⭐ Trả lời đúng được x2 điểm';
-    else if (selectedPowerUp === 'thunder') hint.textContent = '⚡ Đúng: trừ 400đ Top 3 trên bạn · Sai: tự trừ 400đ';
+    if (selectedPowerUp === 'star') hint.textContent = `⭐ Trả lời đúng được x2 điểm (còn ${powerUpsLeft.star} lần)`;
+    else if (selectedPowerUp === 'thunder') hint.textContent = '⚡ Đúng: trừ 400đ người trên 1 hạng · Sai: tự trừ 400đ';
     else hint.textContent = '';
 }
 
@@ -176,14 +179,18 @@ function resetPowerUps() {
     const hint = document.getElementById('powerup-hint');
     star.classList.remove('active');
     thunder.classList.remove('active');
-    star.disabled = false;
-    thunder.disabled = false;
+    star.disabled = powerUpsLeft.star <= 0;
+    thunder.disabled = powerUpsLeft.thunder <= 0;
+    star.textContent = `⭐ x2 điểm${powerUpsLeft.star > 0 ? ` (${powerUpsLeft.star})` : ''}`;
+    thunder.textContent = `⚡ Trừ hạng trên${powerUpsLeft.thunder > 0 ? ` (${powerUpsLeft.thunder})` : ''}`;
     hint.textContent = '';
 }
 
 function setPowerUpsDisabled(disabled) {
-    document.getElementById('pu-star').disabled = disabled;
-    document.getElementById('pu-thunder').disabled = disabled;
+    const star = document.getElementById('pu-star');
+    const thunder = document.getElementById('pu-thunder');
+    star.disabled = disabled || powerUpsLeft.star <= 0;
+    thunder.disabled = disabled || powerUpsLeft.thunder <= 0;
 }
 
 function showToast(text, ms = 2000) {
@@ -214,11 +221,18 @@ function onAnswerResult(msg) {
         setTimeout(() => { gained.className = 'player-gained'; }, 1600);
     }
 
+    if (msg.powerUpsRemaining) {
+        powerUpsLeft = { ...msg.powerUpsRemaining };
+        resetPowerUps();
+    }
+
     if (msg.powerUp === 'star' && msg.gained > 0) {
         showToast('⭐ Ngôi sao hi vọng: điểm x2!');
     } else if (msg.powerUp === 'thunder') {
         if (msg.correct) {
-            showToast(`⚡ Sấm sét đánh ${msg.thunderHits ? msg.thunderHits.length : 0} người phía trên — mỗi người -400 điểm!`);
+            const n = msg.thunderHits ? msg.thunderHits.length : 0;
+            if (n > 0) showToast('⚡ Sấm sét đánh người trên 1 hạng — họ bị trừ 400 điểm!');
+            else showToast('⚡ Bạn đang đứng nhất — không có ai phía trên để đánh');
         } else {
             showToast('⚡ Trả lời sai — bạn bị trừ 400 điểm!');
         }
