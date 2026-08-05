@@ -64,8 +64,7 @@ const questions = require('./questions');
 
 const games = new Map();
 
-const BASE_POINTS = 10;
-const MAX_POINTS_PER_QUESTION = 20;
+const MAX_POINTS_PER_QUESTION = 1000;
 
 function generateCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -305,7 +304,7 @@ function submitAnswer(ws, msg) {
     if (correct) {
         const elapsedSeconds = (Date.now() - (game.questionStartTime || Date.now())) / 1000;
         const speedRatio = Math.max(0, Math.min(1, 1 - elapsedSeconds / game.timerDuration));
-        gained = BASE_POINTS + Math.round((MAX_POINTS_PER_QUESTION - BASE_POINTS) * speedRatio);
+        gained = Math.round(MAX_POINTS_PER_QUESTION * speedRatio);
         player.score += gained;
         player.correctAnswers++;
     } else {
