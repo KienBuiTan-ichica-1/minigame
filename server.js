@@ -64,6 +64,9 @@ const questions = require('./questions');
 
 const games = new Map();
 
+const BASE_POINTS = 10;
+const MAX_POINTS_PER_QUESTION = 20;
+
 function generateCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
@@ -298,10 +301,18 @@ function submitAnswer(ws, msg) {
     player.answers[game.currentQuestion] = msg.answerIndex;
     game.answeredCount++;
 
-    if (correct) { player.score += 10; player.correctAnswers++; }
-    else { player.wrongAnswers++; }
+    let gained = 0;
+    if (correct) {
+        const elapsedSeconds = (Date.now() - (game.questionStartTime || Date.now())) / 1000;
+        const speedRatio = Math.max(0, Math.min(1, 1 - elapsedSeconds / game.timerDuration));
+        gained = BASE_POINTS + Math.round((MAX_POINTS_PER_QUESTION - BASE_POINTS) * speedRatio);
+        player.score += gained;
+        player.correctAnswers++;
+    } else {
+        player.wrongAnswers++;
+    }
 
-    ws.send(JSON.stringify({ type: 'answerResult', correct, correctIndex: questions[game.currentQuestion].c, score: player.score }));
+    ws.send(JSON.stringify({ type: 'answerResult', correct, correctIndex: questions[game.currentQuestion].c, score: player.score, gained }));
 
     game.host.send(JSON.stringify({ type: 'playerAnswered', answeredCount: game.answeredCount, totalCount: game.players.size }));
 

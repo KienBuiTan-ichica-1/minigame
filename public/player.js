@@ -7,6 +7,7 @@ let totalQuestions = 0;
 let isAnswering = false;
 let timerAnimation = null;
 let selectedAnswerIndex = -1;
+let lastGained = 0;
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -84,6 +85,9 @@ function onNewQuestion(msg) {
 
     showScreen('player-quiz-screen');
 
+    const gained = document.getElementById('player-gained');
+    if (gained) gained.className = 'player-gained';
+
     startPlayerTimer(msg.timeLimit);
 }
 
@@ -125,7 +129,15 @@ function playerSelect(index, btn) {
 
 function onAnswerResult(msg) {
     currentScore = msg.score;
+    lastGained = msg.gained;
     document.getElementById('player-score').textContent = msg.score;
+
+    const gained = document.getElementById('player-gained');
+    if (msg.gained > 0) {
+        gained.textContent = `+${msg.gained}`;
+        gained.className = 'player-gained show';
+        setTimeout(() => { gained.className = 'player-gained'; }, 1600);
+    }
 }
 
 function onShowAnswer(msg) {
@@ -145,7 +157,7 @@ function onShowAnswer(msg) {
 
         document.getElementById('player-result-icon').textContent = '📊';
         document.getElementById('player-result-title').textContent = 'Kết quả';
-        document.getElementById('player-result-score').textContent = `⭐ ${currentScore} điểm`;
+        document.getElementById('player-result-score').textContent = `+${lastGained} điểm`;
         document.getElementById('player-result-total-score').textContent = currentScore;
         document.getElementById('player-result-waiting').textContent = '';
 
