@@ -15,6 +15,7 @@ function connect() {
             case 'gameCreated': onGameCreated(msg); break;
             case 'playerJoined': onPlayerJoined(msg); break;
             case 'playerLeft': onPlayerLeft(msg); break;
+            case 'hostPowerUpPhase': onHostPowerUpPhase(msg); break;
             case 'hostNewQuestion': onHostNewQuestion(msg); break;
             case 'playerAnswered': onPlayerAnswered(msg); break;
             case 'hostQuestionResult': onHostQuestionResult(msg); break;
@@ -115,10 +116,7 @@ function startGame() {
     ws.send(JSON.stringify({ type: 'startGame' }));
 }
 
-function onHostNewQuestion(msg) {
-    isShowingAnswer = false;
-    currentQuestion = msg.questionIndex;
-
+function renderHostQuestion(msg) {
     document.getElementById('host-progress').textContent = `${msg.questionIndex + 1}/${msg.totalQuestions}`;
     document.getElementById('host-player-count').textContent = msg.totalPlayers;
     document.getElementById('answered-count').textContent = '0';
@@ -145,9 +143,23 @@ function onHostNewQuestion(msg) {
 
     document.getElementById('host-result-area').style.display = 'none';
     document.getElementById('host-next-btn').style.display = 'none';
+}
 
+function onHostPowerUpPhase(msg) {
+    isShowingAnswer = false;
+    currentQuestion = msg.questionIndex;
+    renderHostQuestion(msg);
+    document.getElementById('host-phase-label').textContent = '⏳ Người chơi đang chọn item...';
     startHostTimer(msg.timeLimit);
+    showScreen('quiz-screen');
+}
 
+function onHostNewQuestion(msg) {
+    isShowingAnswer = false;
+    currentQuestion = msg.questionIndex;
+    renderHostQuestion(msg);
+    document.getElementById('host-phase-label').textContent = '🗳️ Trả lời câu hỏi';
+    startHostTimer(msg.timeLimit);
     showScreen('quiz-screen');
 }
 
@@ -161,6 +173,7 @@ function startHostTimer(seconds) {
     ring.style.strokeDasharray = circumference;
     ring.style.strokeDashoffset = 0;
     circle.classList.remove('warning');
+    num.textContent = seconds;
 
     if (timerInterval) clearInterval(timerInterval);
 
@@ -195,10 +208,11 @@ function onHostQuestionResult(msg) {
 
     const dist = document.getElementById('answer-distribution');
     dist.innerHTML = '<div class="dist-title">Phân bố câu trả lời</div>';
-    const letters = ['A', 'B', 'C', 'D'];
-    const colors = ['#e53e3e', '#3182ce', '#d69e2e', '#38a169'];
+    const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const colors = ['#e53e3e', '#3182ce', '#d69e2e', '#38a169', '#805ad5', '#d53f8c'];
     const maxVal = Math.max(...msg.answerDistribution, 1);
     msg.answerDistribution.forEach((count, i) => {
+        if (i >= 4 && count === 0) return;
         const bar = document.createElement('div');
         bar.className = `dist-bar ${i === correctIndex ? 'dist-correct' : ''}`;
         bar.innerHTML = `
@@ -309,8 +323,25 @@ function resetGame() {
     setTimeout(connect, 500);
 }
 
+function createParticles() {
+    const container = document.getElementById('particles');
+    if (!container) return;
+    for (let i = 0; i < 28; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        const size = (Math.random() * 4 + 2) + 'px';
+        p.style.width = size;
+        p.style.height = size;
+        p.style.animationDuration = (Math.random() * 8 + 7) + 's';
+        p.style.animationDelay = (Math.random() * 8) + 's';
+        container.appendChild(p);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     connect();
+    createParticles();
 
     document.getElementById('btn-copy-code').addEventListener('click', () => {
         if (gameCode) {

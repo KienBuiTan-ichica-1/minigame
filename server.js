@@ -65,6 +65,7 @@ const questions = require('./questions');
 const games = new Map();
 
 const MAX_POINTS_PER_QUESTION = 1000;
+const POWER_UP_PHASE_SECONDS = 10;
 
 function generateCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -75,6 +76,24 @@ function generateCode() {
 
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
+}
+
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function getFakeOptions(q, n) {
+    const pool = [];
+    for (const question of questions) {
+        if (question === q) continue;
+        for (const opt of question.a) pool.push(opt);
+    }
+    shuffle(pool);
+    return pool.slice(0, n);
 }
 
 const server = http.createServer((req, res) => {
@@ -176,6 +195,7 @@ wss.on('connection', (ws) => {
             case 'createGame': createGame(ws); break;
             case 'joinGame': joinGame(ws, msg); break;
             case 'startGame': startGame(ws); break;
+            case 'selectPowerUp': onSelectPowerUp(ws, msg); break;
             case 'submitAnswer': submitAnswer(ws, msg); break;
             case 'nextQuestion': nextQuestion(ws); break;
             case 'endGame': endGame(ws); break;
@@ -239,7 +259,7 @@ function joinGame(ws, msg) {
     if (!playerName || playerName.trim().length === 0) { ws.send(JSON.stringify({ type: 'error', message: 'Vui lòng nhập tên!' })); return; }
 
     const id = generateId();
-    const player = { id, name: playerName.trim(), ws, score: 0, correctAnswers: 0, wrongAnswers: 0, answers: [], joinedAt: Date.now(), powerUps: { star: 2, thunder: 1, devil: 1 } };
+    const player = { id, name: playerName.trim(), ws, score: 0, correctAnswers: 0, wrongAnswers: 0, answers: [], joinedAt: Date.now(), powerUps: { star: 2, thunder: 1, devil: 1, reduce: 1, expand: 1, shield: 1 }, selectedPowerUps: [], shieldActive: false, optionMap: null };
     game.players.set(id, player);
     player.ws = ws;
 
@@ -261,22 +281,123 @@ function startGame(ws) {
 function sendQuestion(game) {
     game.currentQuestion++;
     if (game.currentQuestion >= questions.length) { finishGame(game); return; }
-    game.state = 'playing';
+    game.state = 'powerUpPhase';
     game.answeredCount = 0;
-    game.questionStartTime = Date.now();
+    game.questionStartTime = null;
 
-    const q = questions[game.currentQuestion];
-    broadcastToPlayers(game.code, 'newQuestion', {
-        questionIndex: game.currentQuestion,
+    const qi = game.currentQuestion;
+    const q = questions[qi];
+
+    for (const [, player] of game.players) {
+        player.selectedPowerUps = [];
+        player.shieldActive = false;
+        player.optionMap = null;
+        if (player.ws.readyState === WebSocket.OPEN) {
+            player.ws.send(JSON.stringify({
+                type: 'powerUpPhase',
+                questionIndex: qi,
+                totalQuestions: questions.length,
+                text: q.q,
+                timeLimit: POWER_UP_PHASE_SECONDS,
+                powerUps: { ...player.powerUps },
+            }));
+        }
+    }
+
+    game.host.send(JSON.stringify({
+        type: 'hostPowerUpPhase',
+        questionIndex: qi,
         totalQuestions: questions.length,
         text: q.q,
         options: q.a,
-        timeLimit: game.timerDuration,
-    });
+        timeLimit: POWER_UP_PHASE_SECONDS,
+        totalPlayers: game.players.size,
+    }));
+
+    if (game.timerTimeout) clearTimeout(game.timerTimeout);
+    game.timerTimeout = setTimeout(() => startAnswerPhase(game), POWER_UP_PHASE_SECONDS * 1000);
+}
+
+function onSelectPowerUp(ws, msg) {
+    const playerId = findPlayerId(ws);
+    const game = findGameByPlayer(ws);
+    if (!game || !playerId || game.state !== 'powerUpPhase') return;
+    const player = game.players.get(playerId);
+
+    const allowed = ['star', 'thunder', 'devil', 'reduce', 'expand', 'shield'];
+    const selected = [];
+    if (Array.isArray(msg.powerUps)) {
+        for (const pu of msg.powerUps) {
+            if (allowed.includes(pu) && player.powerUps[pu] > 0 && !selected.includes(pu)) {
+                selected.push(pu);
+            }
+        }
+    }
+    player.selectedPowerUps = selected;
+}
+
+function startAnswerPhase(game) {
+    if (game.state !== 'powerUpPhase') return;
+    game.state = 'playing';
+    game.questionStartTime = Date.now();
+
+    const qi = game.currentQuestion;
+    const q = questions[qi];
+    const leaderboard = buildLeaderboard(game);
+    const positions = new Map(leaderboard.map((p, i) => [p.id, i]));
+    const expandTargets = new Set();
+    for (const [, player] of game.players) {
+        if (player.selectedPowerUps.includes('expand')) {
+            const myPos = positions.get(player.id);
+            if (myPos !== undefined && myPos > 0) {
+                for (let i = Math.max(0, myPos - 3); i < myPos; i++) {
+                    expandTargets.add(leaderboard[i].id);
+                }
+            }
+        }
+    }
+    const fakeOptions = expandTargets.size > 0 ? getFakeOptions(q, 2) : null;
+
+    for (const [, player] of game.players) {
+        if (player.ws.readyState !== WebSocket.OPEN) continue;
+
+        player.shieldActive = player.selectedPowerUps.includes('shield');
+
+        let options = q.a;
+        let map = null;
+
+        if (player.selectedPowerUps.includes('reduce')) {
+            const others = q.a.map((_, i) => i).filter(i => i !== q.c);
+            const wrong = others[Math.floor(Math.random() * others.length)];
+            map = shuffle([q.c, wrong]);
+            options = map.map(i => q.a[i]);
+        } else if (expandTargets.has(player.id)) {
+            options = q.a.concat(fakeOptions);
+        }
+
+        if (map) {
+            if (!player.optionMap) player.optionMap = {};
+            player.optionMap[qi] = map;
+        }
+
+        for (const pu of player.selectedPowerUps) {
+            if (player.powerUps[pu] > 0) player.powerUps[pu]--;
+        }
+
+        player.ws.send(JSON.stringify({
+            type: 'newQuestion',
+            questionIndex: qi,
+            totalQuestions: questions.length,
+            text: q.q,
+            options,
+            timeLimit: game.timerDuration,
+            powerUps: { ...player.powerUps },
+        }));
+    }
 
     game.host.send(JSON.stringify({
         type: 'hostNewQuestion',
-        questionIndex: game.currentQuestion,
+        questionIndex: qi,
         totalQuestions: questions.length,
         text: q.q,
         options: q.a,
@@ -296,49 +417,57 @@ function submitAnswer(ws, msg) {
     const player = game.players.get(playerId);
     if (player.answers[game.currentQuestion] !== undefined) return;
 
-    let powerUp = msg.powerUp === 'star' || msg.powerUp === 'thunder' || msg.powerUp === 'devil' ? msg.powerUp : null;
-    if (powerUp && player.powerUps[powerUp] <= 0) powerUp = null;
-    const correct = msg.answerIndex === questions[game.currentQuestion].c;
-    player.answers[game.currentQuestion] = msg.answerIndex;
+    const powerUps = player.selectedPowerUps || [];
+    const useStar = powerUps.includes('star');
+    const useDevil = powerUps.includes('devil');
+    const useThunder = powerUps.includes('thunder');
+
+    let realIndex = msg.answerIndex;
+    if (player.optionMap && player.optionMap[game.currentQuestion] !== undefined) {
+        const m = player.optionMap[game.currentQuestion];
+        if (msg.answerIndex >= 0 && msg.answerIndex < m.length) realIndex = m[msg.answerIndex];
+    }
+    const correct = realIndex === questions[game.currentQuestion].c;
+    player.answers[game.currentQuestion] = realIndex;
     game.answeredCount++;
 
     let gained = 0;
     let thunderHits = [];
+    let thunderBlocked = [];
     if (correct) {
         const elapsedSeconds = (Date.now() - (game.questionStartTime || Date.now())) / 1000;
         const speedRatio = Math.max(0, Math.min(1, 1 - Math.pow(elapsedSeconds / game.timerDuration, 2)));
         gained = Math.round(MAX_POINTS_PER_QUESTION * speedRatio);
-        if (powerUp === 'star') gained *= 2;
-        else if (powerUp === 'devil') gained = Math.round(2500 * speedRatio);
+        if (useDevil) gained = Math.round(2500 * speedRatio);
+        if (useStar) gained *= 2;
         player.score += gained;
         player.correctAnswers++;
     } else {
         player.wrongAnswers++;
-        if (powerUp === 'thunder') {
-            player.score = Math.max(0, player.score - 400);
-        } else if (powerUp === 'devil') {
-            player.score = Math.max(0, player.score - 3500);
-        }
+        if (useThunder) player.score = Math.max(0, player.score - 400);
+        if (useDevil) player.score = Math.max(0, player.score - 3500);
     }
 
-    if (correct && powerUp === 'thunder') {
+    if (correct && useThunder) {
         const leaderboard = buildLeaderboard(game);
         const myPos = leaderboard.findIndex(p => p.id === playerId);
         const targets = myPos > 0 ? [leaderboard[myPos - 1]] : [];
         for (const t of targets) {
             const target = game.players.get(t.id);
-            target.score = Math.max(0, target.score - 400);
-            thunderHits.push({ playerId: t.id, playerName: t.name });
-        }
-        for (const t of targets) {
-            const target = game.players.get(t.id);
-            if (target.ws.readyState === WebSocket.OPEN) {
-                target.ws.send(JSON.stringify({ type: 'scoreHit', amount: 400, score: target.score, byName: player.name }));
+            if (target.shieldActive) {
+                thunderBlocked.push({ playerId: t.id, playerName: t.name });
+                if (target.ws.readyState === WebSocket.OPEN) {
+                    target.ws.send(JSON.stringify({ type: 'shieldBlocked', byName: player.name }));
+                }
+            } else {
+                target.score = Math.max(0, target.score - 400);
+                thunderHits.push({ playerId: t.id, playerName: t.name });
+                if (target.ws.readyState === WebSocket.OPEN) {
+                    target.ws.send(JSON.stringify({ type: 'scoreHit', amount: 400, score: target.score, byName: player.name }));
+                }
             }
         }
     }
-
-    if (powerUp) player.powerUps[powerUp]--;
 
     const result = {
         type: 'answerResult',
@@ -346,11 +475,14 @@ function submitAnswer(ws, msg) {
         correctIndex: questions[game.currentQuestion].c,
         score: player.score,
         gained,
-        powerUp,
+        powerUps,
         powerUpsRemaining: { ...player.powerUps },
     };
-    if (correct && powerUp === 'thunder') result.thunderHits = thunderHits;
-    if (!correct && powerUp === 'thunder') result.thunderPenalty = 400;
+    if (correct && useThunder) {
+        result.thunderHits = thunderHits;
+        result.thunderBlocked = thunderBlocked;
+    }
+    if (!correct && useThunder) result.thunderPenalty = 400;
     ws.send(JSON.stringify(result));
 
     game.host.send(JSON.stringify({ type: 'playerAnswered', answeredCount: game.answeredCount, totalCount: game.players.size }));
@@ -369,11 +501,19 @@ function showCorrectAnswer(game) {
     const leaderboard = buildLeaderboard(game);
     const top10 = leaderboard.slice(0, 10);
 
-    broadcastToPlayers(game.code, 'showAnswer', {
-        correctIndex: q.c,
-        leaderboard: top10,
-        totalPlayers: game.players.size,
-    });
+    for (const [, player] of game.players) {
+        if (player.ws.readyState !== WebSocket.OPEN) continue;
+        let localCorrect = q.c;
+        if (player.optionMap && player.optionMap[game.currentQuestion] !== undefined) {
+            localCorrect = player.optionMap[game.currentQuestion].indexOf(q.c);
+        }
+        player.ws.send(JSON.stringify({
+            type: 'showAnswer',
+            correctIndex: localCorrect,
+            leaderboard: top10,
+            totalPlayers: game.players.size,
+        }));
+    }
 
     game.host.send(JSON.stringify({
         type: 'hostQuestionResult',
@@ -443,10 +583,10 @@ function buildLeaderboard(game) {
 }
 
 function getAnswerDistribution(game, questionIndex) {
-    const dist = [0, 0, 0, 0];
+    const dist = [0, 0, 0, 0, 0, 0];
     for (const [, player] of game.players) {
         const answer = player.answers[questionIndex];
-        if (answer !== undefined) dist[answer]++;
+        if (answer !== undefined && answer < dist.length) dist[answer]++;
     }
     return dist;
 }

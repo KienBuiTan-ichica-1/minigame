@@ -115,8 +115,11 @@ https://abc123.ngrok-free.app/player.html?game=<MÃ_PHÒNG>
 | 1 | **Host** tạo phòng → QR + mã phòng hiện ra |
 | 2 | **Người chơi** quét QR hoặc nhập mã → điền tên |
 | 3 | **Host** nhấn "Bắt đầu" → câu hỏi đầu tiên xuất hiện |
-| 4 | **Người chơi** chọn đáp án (4 nút màu) trong 20 giây |
-| 5 | Hết giờ → hiện đáp án đúng + **Top 10 leaderboard** |
+| 4 | **Người chơi** có **10 giây** chọn item (chọn được nhiều item cùng lúc, mỗi item còn lượt dùng) |
+| 5 | **Người chơi** chọn đáp án (4 nút màu) trong 20 giây — item đã chọn phát huy ngay câu đó |
+| 6 | Hết giờ → hiện đáp án đúng + **Top 10 leaderboard** |
+| 7 | **Host** nhấn "Câu tiếp theo" → lặp lại |
+| 8 | Hết câu hỏi → podium + bảng xếp hạng **Top 10** |
 | 6 | **Host** nhấn "Câu tiếp theo" → lặp lại |
 | 7 | Hết câu hỏi → podium + bảng xếp hạng **Top 10** |
 
@@ -126,11 +129,15 @@ https://abc123.ngrok-free.app/player.html?game=<MÃ_PHÒNG>
 - ✅ **QR code** tự động tạo cho mỗi phòng
 - ✅ **Top 10 leaderboard** real-time (giống Kahoot)
 - ✅ 4 nút màu (đỏ 🔴 xanh dương 🔵 vàng 🟡 xanh lá 🟢)
-- ✅ Đếm ngược 20 giây mỗi câu
+- ✅ Đếm ngược **10 giây** chọn item đầu mỗi câu + **20 giây** trả lời
+- ✅ Chọn item không giới hạn số lượng — có thể chọn **nhiều item cùng lúc** (miễn item đó còn lượt sử dụng) và phát huy **ngay trên câu đang chơi**
 - ✅ Điểm mỗi câu bắt đầu **1000**, giảm dần theo thời gian (chậm hơn — giữ điểm cao lâu, cuối giờ mới tụt nhanh)
 - ✅ **⭐ Ngôi sao hi vọng:** trả lời đúng được **x2 điểm** — mỗi người dùng được **2 lần/cả game**
 - ✅ **⚡ Sấm sét:** trả lời đúng → trừ **400 điểm** người đứng trên mình **1 hạng**; trả lời sai → tự bị trừ 400 điểm — mỗi người dùng được **1 lần/cả game**
 - ✅ **🌑 Ngôi sao đen:** trả lời đúng → được tối đa **2500 điểm**; trả lời sai → bị trừ **3500 điểm** — mỗi người dùng được **1 lần/cả game**
+- ✅ **🔍 2 đáp án:** câu đang chơi bạn chỉ còn **2 đáp án** — mỗi người dùng được **1 lần**
+- ✅ **🌪️ 6 đáp án:** câu đang chơi **top 3 người đứng trên bạn** phải chọn **6 đáp án** — mỗi người dùng được **1 lần**
+- ✅ **🛡️ Khiên:** câu đang chơi không bị trừ điểm từ người khác — mỗi người dùng được **1 lần**
 - ✅ Podium 3 vị trí cao nhất khi kết thúc
 - ✅ Giữ nguyên giao diện, câu hỏi & hiệu ứng từ bản gốc
 

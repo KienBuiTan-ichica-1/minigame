@@ -11,9 +11,10 @@ let lastGained = 0;
 let potentialInterval = null;
 let potentialStartTime = 0;
 let potentialDuration = 0;
-let selectedPowerUp = null;
+let selectedPowerUps = new Set();
+let phaseInterval = null;
 let toastTimer = null;
-let powerUpsLeft = { star: 2, thunder: 1, devil: 1 };
+let powerUpsLeft = { star: 2, thunder: 1, devil: 1, reduce: 1, expand: 1, shield: 1 };
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -31,9 +32,11 @@ function connect() {
             case 'joined': onJoined(msg); break;
             case 'error': showError(msg.message); break;
             case 'gameStarted': onGameStarted(msg); break;
+            case 'powerUpPhase': onPowerUpPhase(msg); break;
             case 'newQuestion': onNewQuestion(msg); break;
             case 'answerResult': onAnswerResult(msg); break;
             case 'scoreHit': onScoreHit(msg); break;
+            case 'shieldBlocked': onShieldBlocked(msg); break;
             case 'showAnswer': onShowAnswer(msg); break;
             case 'gameFinished': onGameFinished(msg); break;
         }
@@ -68,11 +71,12 @@ function onGameStarted(msg) {
     showScreen('player-quiz-screen');
 }
 
-function onNewQuestion(msg) {
-    isAnswering = true;
+function onPowerUpPhase(msg) {
+    isAnswering = false;
     selectedAnswerIndex = -1;
-    selectedPowerUp = null;
-    resetPowerUps();
+    selectedPowerUps = new Set();
+    if (msg.powerUps) powerUpsLeft = { ...msg.powerUps };
+
     currentScore = msg.questionIndex === 0 ? 0 : currentScore;
 
     document.getElementById('player-question-num').textContent = `${msg.questionIndex + 1}/${msg.totalQuestions}`;
@@ -80,18 +84,75 @@ function onNewQuestion(msg) {
     document.getElementById('player-question-badge').textContent = `Câu ${msg.questionIndex + 1}`;
     document.getElementById('player-question-text').textContent = msg.text;
 
-    const opts = ['opt-text-0', 'opt-text-1', 'opt-text-2', 'opt-text-3'];
+    const opts = ['opt-text-0', 'opt-text-1', 'opt-text-2', 'opt-text-3', 'opt-text-4', 'opt-text-5'];
+    opts.forEach(id => { document.getElementById(id).textContent = ''; });
+
+    const btns = document.querySelectorAll('.player-option');
+    btns.forEach(b => {
+        b.disabled = true;
+        b.className = 'player-option ' + b.classList[1];
+        b.style.transform = '';
+        b.style.opacity = '1';
+        b.style.display = 'none';
+    });
+    document.getElementById('player-options').style.opacity = '0.4';
+
+    const gained = document.getElementById('player-gained');
+    if (gained) gained.className = 'player-gained';
+
+    resetPowerUps();
+    startPhaseCountdown(msg.timeLimit);
+    showScreen('player-quiz-screen');
+}
+
+function startPhaseCountdown(seconds) {
+    if (phaseInterval) { clearInterval(phaseInterval); phaseInterval = null; }
+    const banner = document.getElementById('player-phase-banner');
+    banner.style.display = 'flex';
+    let remaining = seconds;
+    banner.textContent = `⏳ Chọn item — còn ${remaining}s`;
+    phaseInterval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+            clearInterval(phaseInterval);
+            phaseInterval = null;
+            banner.textContent = '⏳ Hết giờ chọn item!';
+        } else {
+            banner.textContent = `⏳ Chọn item — còn ${remaining}s`;
+        }
+    }, 1000);
+}
+
+function onNewQuestion(msg) {
+    isAnswering = true;
+    selectedAnswerIndex = -1;
+    if (phaseInterval) { clearInterval(phaseInterval); phaseInterval = null; }
+    if (msg.powerUps) powerUpsLeft = { ...msg.powerUps };
+
+    document.getElementById('player-phase-banner').style.display = 'none';
+    document.getElementById('player-options').style.opacity = '1';
+
+    document.getElementById('player-question-num').textContent = `${msg.questionIndex + 1}/${msg.totalQuestions}`;
+    document.getElementById('player-score').textContent = currentScore;
+    document.getElementById('player-question-badge').textContent = `Câu ${msg.questionIndex + 1}`;
+    document.getElementById('player-question-text').textContent = msg.text;
+
+    const opts = ['opt-text-0', 'opt-text-1', 'opt-text-2', 'opt-text-3', 'opt-text-4', 'opt-text-5'];
     msg.options.forEach((opt, i) => {
         document.getElementById(opts[i]).textContent = opt;
     });
 
     const btns = document.querySelectorAll('.player-option');
-    btns.forEach(b => {
+    btns.forEach((b, i) => {
         b.disabled = false;
         b.className = 'player-option ' + b.classList[1];
         b.style.transform = '';
         b.style.opacity = '1';
+        b.style.display = i < msg.options.length ? 'flex' : 'none';
     });
+
+    resetPowerUps();
+    setPowerUpsDisabled(true);
 
     showScreen('player-quiz-screen');
 
@@ -154,52 +215,76 @@ function playerSelect(index, btn) {
 
     setPowerUpsDisabled(true);
 
-    ws.send(JSON.stringify({ type: 'submitAnswer', answerIndex: index, powerUp: selectedPowerUp }));
+    ws.send(JSON.stringify({ type: 'submitAnswer', answerIndex: index }));
 }
 
+const POWER_UP_SHORT = {
+    star: '⭐ x2 điểm',
+    thunder: '⚡ Sấm sét',
+    devil: '🌑 Ngôi sao đen',
+        reduce: '🔍 2 đáp án',
+        expand: '🌪️ Top 3 trên chọn 6 đáp án',
+        shield: '🛡️ Khiên',
+    };
+
 function selectPowerUp(type) {
-    if (!isAnswering) return;
+    if (isAnswering) return;
     if (powerUpsLeft[type] <= 0) return;
-    selectedPowerUp = selectedPowerUp === type ? null : type;
+    if (selectedPowerUps.has(type)) selectedPowerUps.delete(type);
+    else selectedPowerUps.add(type);
 
-    const star = document.getElementById('pu-star');
-    const thunder = document.getElementById('pu-thunder');
-    const devil = document.getElementById('pu-devil');
+    const btns = {
+        star: document.getElementById('pu-star'),
+        thunder: document.getElementById('pu-thunder'),
+        devil: document.getElementById('pu-devil'),
+        reduce: document.getElementById('pu-reduce'),
+        expand: document.getElementById('pu-expand'),
+        shield: document.getElementById('pu-shield'),
+    };
     const hint = document.getElementById('powerup-hint');
-    star.classList.toggle('active', selectedPowerUp === 'star');
-    thunder.classList.toggle('active', selectedPowerUp === 'thunder');
-    devil.classList.toggle('active', selectedPowerUp === 'devil');
+    for (const key in btns) btns[key].classList.toggle('active', selectedPowerUps.has(key));
 
-    if (selectedPowerUp === 'star') hint.textContent = `⭐ Trả lời đúng được x2 điểm (còn ${powerUpsLeft.star} lần)`;
-    else if (selectedPowerUp === 'thunder') hint.textContent = '⚡ Đúng: trừ 400đ người trên 1 hạng · Sai: tự trừ 400đ';
-    else if (selectedPowerUp === 'devil') hint.textContent = '🌑 Đúng: được tối đa 2500đ · Sai: bị trừ 3500đ';
-    else hint.textContent = '';
+    if (selectedPowerUps.size > 0) {
+        const names = [...selectedPowerUps].map(k => POWER_UP_SHORT[k]).join(', ');
+        hint.textContent = `Đã chọn: ${names}`;
+    } else {
+        hint.textContent = 'Chọn 1 hoặc nhiều item để dùng cho câu này';
+    }
+
+    ws.send(JSON.stringify({ type: 'selectPowerUp', powerUps: [...selectedPowerUps] }));
 }
 
 function resetPowerUps() {
-    const star = document.getElementById('pu-star');
-    const thunder = document.getElementById('pu-thunder');
-    const devil = document.getElementById('pu-devil');
+    const btns = {
+        star: document.getElementById('pu-star'),
+        thunder: document.getElementById('pu-thunder'),
+        devil: document.getElementById('pu-devil'),
+        reduce: document.getElementById('pu-reduce'),
+        expand: document.getElementById('pu-expand'),
+        shield: document.getElementById('pu-shield'),
+    };
+    const labels = {
+        star: `⭐ x2 điểm${powerUpsLeft.star > 0 ? ` (${powerUpsLeft.star})` : ''}`,
+        thunder: `⚡ Sấm sét${powerUpsLeft.thunder > 0 ? ` (${powerUpsLeft.thunder})` : ''}`,
+        devil: `🌑 Ngôi sao đen${powerUpsLeft.devil > 0 ? ` (${powerUpsLeft.devil})` : ''}`,
+        reduce: `🔍 2 đáp án${powerUpsLeft.reduce > 0 ? ` (${powerUpsLeft.reduce})` : ''}`,
+        expand: `🌪️ 6 đáp án${powerUpsLeft.expand > 0 ? ` (${powerUpsLeft.expand})` : ''}`,
+        shield: `🛡️ Khiên${powerUpsLeft.shield > 0 ? ` (${powerUpsLeft.shield})` : ''}`,
+    };
     const hint = document.getElementById('powerup-hint');
-    star.classList.remove('active');
-    thunder.classList.remove('active');
-    devil.classList.remove('active');
-    star.disabled = powerUpsLeft.star <= 0;
-    thunder.disabled = powerUpsLeft.thunder <= 0;
-    devil.disabled = powerUpsLeft.devil <= 0;
-    star.textContent = `⭐ x2 điểm${powerUpsLeft.star > 0 ? ` (${powerUpsLeft.star})` : ''}`;
-    thunder.textContent = `⚡ Trừ hạng trên${powerUpsLeft.thunder > 0 ? ` (${powerUpsLeft.thunder})` : ''}`;
-    devil.textContent = `🌑 Ngôi sao đen${powerUpsLeft.devil > 0 ? ` (${powerUpsLeft.devil})` : ''}`;
-    hint.textContent = '';
+    for (const key in btns) {
+        btns[key].classList.remove('active');
+        btns[key].textContent = labels[key];
+        btns[key].disabled = powerUpsLeft[key] <= 0;
+    }
+    hint.textContent = isAnswering ? '' : 'Chọn 1 hoặc nhiều item để dùng cho câu này';
 }
 
 function setPowerUpsDisabled(disabled) {
-    const star = document.getElementById('pu-star');
-    const thunder = document.getElementById('pu-thunder');
-    const devil = document.getElementById('pu-devil');
-    star.disabled = disabled || powerUpsLeft.star <= 0;
-    thunder.disabled = disabled || powerUpsLeft.thunder <= 0;
-    devil.disabled = disabled || powerUpsLeft.devil <= 0;
+    const keys = ['star', 'thunder', 'devil', 'reduce', 'expand', 'shield'];
+    keys.forEach(k => {
+        document.getElementById('pu-' + k).disabled = disabled || powerUpsLeft[k] <= 0;
+    });
 }
 
 function showToast(text, ms = 2000) {
@@ -235,20 +320,36 @@ function onAnswerResult(msg) {
         resetPowerUps();
     }
 
-    if (msg.powerUp === 'star' && msg.gained > 0) {
-        showToast('⭐ Ngôi sao hi vọng: điểm x2!');
-    } else if (msg.powerUp === 'devil') {
-        if (msg.correct) showToast(`🌑 Ngôi sao đen: được ${msg.gained} điểm!`);
-        else showToast('🌑 Ngôi sao đen: sai — bạn bị trừ 3500 điểm!');
-    } else if (msg.powerUp === 'thunder') {
-        if (msg.correct) {
-            const n = msg.thunderHits ? msg.thunderHits.length : 0;
-            if (n > 0) showToast('⚡ Sấm sét đánh người trên 1 hạng — họ bị trừ 400 điểm!');
-            else showToast('⚡ Bạn đang đứng nhất — không có ai phía trên để đánh');
-        } else {
-            showToast('⚡ Trả lời sai — bạn bị trừ 400 điểm!');
-        }
+    if (msg.powerUps && msg.powerUps.length > 0) {
+        msg.powerUps.forEach(pu => {
+            if (pu === 'star' && msg.gained > 0) {
+                showToast('⭐ Ngôi sao hi vọng: điểm x2!');
+            } else if (pu === 'devil') {
+                if (msg.correct) showToast(`🌑 Ngôi sao đen: được ${msg.gained} điểm!`);
+                else showToast('🌑 Ngôi sao đen: sai — bạn bị trừ 3500 điểm!');
+            } else if (pu === 'thunder') {
+                if (msg.correct) {
+                    const n = msg.thunderHits ? msg.thunderHits.length : 0;
+                    const b = msg.thunderBlocked ? msg.thunderBlocked.length : 0;
+                    if (n > 0) showToast(`⚡ Sấm sét đánh người trên 1 hạng — họ bị trừ 400 điểm!`);
+                    else if (b > 0) showToast('⚡ Bị 🛡️ khiên chặn! Không trừ được điểm');
+                    else showToast('⚡ Bạn đang đứng nhất — không có ai phía trên để đánh');
+                } else {
+                    showToast('⚡ Trả lời sai — bạn bị trừ 400 điểm!');
+                }
+            } else if (pu === 'reduce') {
+                showToast('🔍 Câu này bạn chỉ có 2 đáp án!');
+            } else if (pu === 'expand') {
+                showToast('🌪️ Top 3 người đứng trên bạn phải chọn 6 đáp án!');
+            } else if (pu === 'shield') {
+                showToast('🛡️ Khiên đã bật — câu này không bị trừ điểm!');
+            }
+        });
     }
+}
+
+function onShieldBlocked(msg) {
+    showToast(`🛡️ Khiên của bạn đã chặn ⚡ sấm sét của ${msg.byName}!`);
 }
 
 function onShowAnswer(msg) {
@@ -294,6 +395,22 @@ function escapeHtml(text) {
     const d = document.createElement('div');
     d.textContent = text;
     return d.innerHTML;
+}
+
+function createParticles() {
+    const container = document.getElementById('particles');
+    if (!container) return;
+    for (let i = 0; i < 28; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        const size = (Math.random() * 4 + 2) + 'px';
+        p.style.width = size;
+        p.style.height = size;
+        p.style.animationDuration = (Math.random() * 8 + 7) + 's';
+        p.style.animationDelay = (Math.random() * 8) + 's';
+        container.appendChild(p);
+    }
 }
 
 function onGameFinished(msg) {
@@ -359,6 +476,7 @@ function joinGame() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    createParticles();
     const nameInput = document.getElementById('name-input');
     const codeInput = document.getElementById('code-input');
     const joinBtn = document.getElementById('join-btn');
