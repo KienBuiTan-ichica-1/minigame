@@ -8,6 +8,9 @@ let isAnswering = false;
 let timerAnimation = null;
 let selectedAnswerIndex = -1;
 let lastGained = 0;
+let potentialInterval = null;
+let potentialStartTime = 0;
+let potentialDuration = 0;
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -88,7 +91,25 @@ function onNewQuestion(msg) {
     const gained = document.getElementById('player-gained');
     if (gained) gained.className = 'player-gained';
 
+    startPotentialTimer(msg.timeLimit);
     startPlayerTimer(msg.timeLimit);
+}
+
+function startPotentialTimer(seconds) {
+    if (potentialInterval) clearInterval(potentialInterval);
+    potentialStartTime = Date.now();
+    potentialDuration = seconds;
+    const el = document.getElementById('player-potential');
+    el.textContent = '1000';
+    potentialInterval = setInterval(() => {
+        const elapsed = (Date.now() - potentialStartTime) / 1000;
+        const ratio = Math.max(0, Math.min(1, 1 - elapsed / potentialDuration));
+        el.textContent = Math.round(1000 * ratio);
+    }, 100);
+}
+
+function stopPotentialTimer() {
+    if (potentialInterval) { clearInterval(potentialInterval); potentialInterval = null; }
 }
 
 function startPlayerTimer(seconds) {
@@ -130,6 +151,7 @@ function playerSelect(index, btn) {
 function onAnswerResult(msg) {
     currentScore = msg.score;
     lastGained = msg.gained;
+    stopPotentialTimer();
     document.getElementById('player-score').textContent = msg.score;
 
     const gained = document.getElementById('player-gained');
