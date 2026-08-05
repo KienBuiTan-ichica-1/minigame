@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xã hội chủ nghĩa - Quiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+        <div class="shape shape-5"></div>
+    </div>
+    
+    <div class="particles" id="particles"></div>
+    
+    <!-- Music Toggle -->
+    <button class="music-btn" id="music-btn" onclick="toggleBgMusic()">
+        <span class="music-icon">🔇</span>
+        <div class="music-waves" id="music-waves">
+            <span></span><span></span><span></span><span></span>
+        </div>
+    </button>
+    
+    <div class="container">
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <div class="start-content">
+                <div class="logo-container">
+                    <div class="logo-glow"></div>
+                    <div class="logo-icon">📚</div>
+                </div>
+                <h1 class="main-title">
+                    <span class="title-word">Xã hội</span>
+                    <span class="title-word highlight">chủ nghĩa</span>
+                </h1>
+                <p class="tagline">Thử thách kiến thức của bạn</p>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <span class="feature-icon">❓</span>
+                        </div>
+                        <span class="feature-value" id="question-count">20</span>
+                        <span class="feature-label">Câu hỏi</span>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <span class="feature-icon">⏱️</span>
+                        </div>
+                        <span class="feature-value">∞</span>
+                        <span class="feature-label">Thời gian</span>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <span class="feature-icon">⭐</span>
+                        </div>
+                        <span class="feature-value">10</span>
+                        <span class="feature-label">Điểm/câu</span>
+                    </div>
+                </div>
+                
+                <button class="btn-start" onclick="startQuiz()">
+                    <span class="btn-text">Bắt đầu ngay</span>
+                    <span class="btn-icon">🚀</span>
+                    <div class="btn-ripple"></div>
+                </button>
+                
+                <div class="decorative-dots">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-screen" class="screen">
+            <div class="quiz-container">
+                <!-- Header -->
+                <div class="quiz-header">
+                    <div class="header-left">
+                        <div class="stat-box">
+                            <span class="stat-icon">📝</span>
+                            <span class="stat-text" id="progress">1/20</span>
+                        </div>
+                        <div class="stat-box score-box">
+                            <span class="stat-icon">💎</span>
+                            <span class="stat-text" id="score-display">0</span>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-end-quiz" onclick="endQuizNow()">
+                        <span class="btn-text">Kết thúc</span>
+                        <span class="btn-icon">⛔</span>
+                    </button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-wrapper">
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progress-bar"></div>
+                    </div>
+                    <span class="progress-percent" id="progress-percent">0%</span>
+                </div>
+
+                <!-- Question Card -->
+                <div class="question-wrapper">
+                    <div class="question-decoration"></div>
+                    <div class="question-card">
+                        <div class="question-badge">
+                            <span class="badge-icon">💡</span>
+                            <span class="badge-text" id="question-number">Câu 1</span>
+                        </div>
+                        <h2 class="question-text" id="question-text"></h2>
+                    </div>
+                </div>
+
+                <!-- Options -->
+                <div id="options" class="options-container"></div>
+
+                <!-- Feedback -->
+                <div id="feedback" class="feedback-container"></div>
+
+                <!-- Next Button -->
+                <button id="next-btn" class="btn-next" onclick="nextQuestion()">
+                    <span class="btn-text">Câu tiếp theo</span>
+                    <span class="btn-arrow">→</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- RESULT SCREEN -->
+        <div id="result-screen" class="screen">
+            <div class="result-content">
+                <div class="result-decoration">
+                    <div class="decoration-circle"></div>
+                    <div class="decoration-circle"></div>
+                    <div class="decoration-circle"></div>
+                </div>
+                
+                <div class="trophy-container">
+                    <div class="trophy-glow"></div>
+                    <div class="trophy-icon" id="result-icon">🏆</div>
+                </div>
+                
+                <h1 class="result-title">Hoàn thành!</h1>
+                
+                <div class="score-display-large">
+                    <div class="score-ring-container">
+                        <svg viewBox="0 0 200 200" class="score-ring-svg">
+                            <defs>
+                                <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#667eea"/>
+                                    <stop offset="50%" style="stop-color:#764ba2"/>
+                                    <stop offset="100%" style="stop-color:#f093fb"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="100" cy="100" r="85" class="score-bg-ring"/>
+                            <circle cx="100" cy="100" r="85" class="score-fill-ring" id="score-ring-fill"/>
+                        </svg>
+                        <div class="score-inner">
+                            <span class="score-number" id="final-score">0</span>
+                            <span class="score-total" id="score-max">/200</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="result-message" id="result-message"></p>
+                
+                <p class="thank-you-message">Cảm ơn cô và các bạn đã tham gia vào mini game của nhóm em 🎉</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card correct-stat">
+                        <div class="stat-card-icon">✅</div>
+                        <span class="stat-card-value" id="correct-count">0</span>
+                        <span class="stat-card-label">Đúng</span>
+                    </div>
+                    <div class="stat-card wrong-stat">
+                        <div class="stat-card-icon">❌</div>
+                        <span class="stat-card-value" id="wrong-count">0</span>
+                        <span class="stat-card-label">Sai</span>
+                    </div>
+                    <div class="stat-card accuracy-stat">
+                        <div class="stat-card-icon">🎯</div>
+                        <span class="stat-card-value" id="accuracy">0%</span>
+                        <span class="stat-card-label">Độ chính xác</span>
+                    </div>
+                </div>
+                
+                <button class="btn-restart" onclick="restartQuiz()">
+                    <span class="btn-icon">🔄</span>
+                    <span class="btn-text">Chơi lại</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="questions.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

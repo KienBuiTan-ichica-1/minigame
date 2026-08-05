@@ -1,0 +1,14 @@
+{
+  "name": "xahoichunghia-multiplayer",
+  "version": "1.0.0",
+  "description": "Xã Hội Chủ Nghĩa - Multiplayer Quiz Game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.0"
+  }
+}

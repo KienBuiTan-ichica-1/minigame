@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xã hội chủ nghĩa - Trả lời</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="player-body">
+    <div class="player-container">
+
+        <!-- JOIN SCREEN -->
+        <div id="join-screen" class="screen active">
+            <div class="join-card">
+                <div class="join-logo">📚</div>
+                <h1 class="join-title">Xã hội chủ nghĩa</h1>
+                <p class="join-subtitle">Nhập tên để tham gia</p>
+
+                <div class="input-wrapper">
+                    <input type="text" id="code-input" class="name-input" placeholder="Mã phòng (6 ký tự)..." maxlength="6" autocomplete="off" autocapitalize="characters">
+                </div>
+
+                <div class="input-wrapper">
+                    <input type="text" id="name-input" class="name-input" placeholder="Nhập tên của bạn..." maxlength="20" autocomplete="off">
+                    <span class="input-char-count" id="char-count">0/20</span>
+                </div>
+
+                <button class="btn-start join-btn" id="join-btn" disabled>
+                    <span class="btn-text">Tham gia</span>
+                    <span class="btn-icon">🎮</span>
+                </button>
+
+                <div id="join-error" class="join-error"></div>
+            </div>
+        </div>
+
+        <!-- WAITING SCREEN -->
+        <div id="waiting-screen" class="screen">
+            <div class="waiting-card">
+                <div class="waiting-spinner"></div>
+                <h2 class="waiting-title">Đang chờ...</h2>
+                <p class="waiting-subtitle">Chờ người tổ chức bắt đầu trò chơi</p>
+                <div class="waiting-players">
+                    <span>👥</span>
+                    <span id="waiting-player-count">0</span>
+                    <span>người chơi</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- QUIZ SCREEN (PLAYER) -->
+        <div id="player-quiz-screen" class="screen">
+            <div class="player-quiz-header">
+                <div class="player-progress">
+                    <span id="player-question-num">1/10</span>
+                </div>
+                <div class="player-score">
+                    <span>⭐</span>
+                    <span id="player-score">0</span>
+                </div>
+            </div>
+
+            <div class="player-timer-bar">
+                <div class="player-timer-fill" id="player-timer-fill"></div>
+            </div>
+
+            <div class="player-question-area">
+                <div class="player-question-badge" id="player-question-badge">Câu 1</div>
+                <h2 class="player-question-text" id="player-question-text"></h2>
+            </div>
+
+            <div class="player-options" id="player-options">
+                <button class="player-option opt-red" data-index="0" onclick="playerSelect(0, this)">
+                    <span class="opt-letter">A</span>
+                    <span class="opt-text" id="opt-text-0"></span>
+                </button>
+                <button class="player-option opt-blue" data-index="1" onclick="playerSelect(1, this)">
+                    <span class="opt-letter">B</span>
+                    <span class="opt-text" id="opt-text-1"></span>
+                </button>
+                <button class="player-option opt-yellow" data-index="2" onclick="playerSelect(2, this)">
+                    <span class="opt-letter">C</span>
+                    <span class="opt-text" id="opt-text-2"></span>
+                </button>
+                <button class="player-option opt-green" data-index="3" onclick="playerSelect(3, this)">
+                    <span class="opt-letter">D</span>
+                    <span class="opt-text" id="opt-text-3"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ANSWER RESULT SCREEN -->
+        <div id="player-result-screen" class="screen">
+            <div class="result-card" id="player-result-card">
+                <div class="player-result-icon" id="player-result-icon">✅</div>
+                <h2 class="player-result-title" id="player-result-title">Chính xác!</h2>
+                <div class="player-result-score" id="player-result-score">+10</div>
+                <div class="player-result-total">Tổng: <span id="player-result-total-score">0</span> điểm</div>
+
+                <div class="player-result-waiting">Đang chờ kết quả...</div>
+
+                <div class="player-leaderboard" id="player-leaderboard">
+                    <h4 class="lb-mini-title">🏆 Bảng xếp hạng</h4>
+                    <div id="player-lb-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FINAL SCREEN (PLAYER) -->
+        <div id="player-final-screen" class="screen">
+            <div class="final-card">
+                <div class="final-decoration">
+                    <div class="final-circle"></div>
+                    <div class="final-circle"></div>
+                </div>
+
+                <div class="final-trophy" id="final-trophy">🏆</div>
+                <h1 class="final-title">Hoàn thành!</h1>
+
+                <div class="final-rank-section">
+                    <div class="final-rank-badge" id="final-rank-badge">#1</div>
+                    <div class="final-rank-label">Thứ hạng của bạn</div>
+                </div>
+
+                <div class="final-stats">
+                    <div class="final-stat">
+                        <div class="final-stat-value" id="final-stat-score">0</div>
+                        <div class="final-stat-label">Điểm</div>
+                    </div>
+                    <div class="final-stat correct-stat">
+                        <div class="final-stat-value" id="final-stat-correct">0</div>
+                        <div class="final-stat-label">✅ Đúng</div>
+                    </div>
+                    <div class="final-stat wrong-stat">
+                        <div class="final-stat-value" id="final-stat-wrong">0</div>
+                        <div class="final-stat-label">❌ Sai</div>
+                    </div>
+                </div>
+
+                <div class="final-leaderboard">
+                    <h3>🏆 Top 10</h3>
+                    <div id="player-final-lb"></div>
+                </div>
+
+                <p class="thank-you-message">Cảm ơn cô và các bạn đã tham gia vào mini game của nhóm em 🎉</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlGameCode = (urlParams.get('game') || '').toUpperCase();
+        if (urlGameCode) {
+            document.getElementById('code-input').value = urlGameCode;
+        }
+    </script>
+    <script src="player.js"></script>
+</body>
+</html>
