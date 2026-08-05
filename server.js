@@ -296,22 +296,55 @@ function submitAnswer(ws, msg) {
     const player = game.players.get(playerId);
     if (player.answers[game.currentQuestion] !== undefined) return;
 
+    const powerUp = msg.powerUp === 'star' || msg.powerUp === 'thunder' ? msg.powerUp : null;
     const correct = msg.answerIndex === questions[game.currentQuestion].c;
     player.answers[game.currentQuestion] = msg.answerIndex;
     game.answeredCount++;
 
     let gained = 0;
+    let thunderHits = [];
     if (correct) {
         const elapsedSeconds = (Date.now() - (game.questionStartTime || Date.now())) / 1000;
         const speedRatio = Math.max(0, Math.min(1, 1 - elapsedSeconds / game.timerDuration));
         gained = Math.round(MAX_POINTS_PER_QUESTION * speedRatio);
+        if (powerUp === 'star') gained *= 2;
         player.score += gained;
         player.correctAnswers++;
     } else {
         player.wrongAnswers++;
+        if (powerUp === 'thunder') {
+            player.score = Math.max(0, player.score - 400);
+        }
     }
 
-    ws.send(JSON.stringify({ type: 'answerResult', correct, correctIndex: questions[game.currentQuestion].c, score: player.score, gained }));
+    if (correct && powerUp === 'thunder') {
+        const leaderboard = buildLeaderboard(game);
+        const myPos = leaderboard.findIndex(p => p.id === playerId);
+        const targets = leaderboard.slice(0, myPos).slice(-3);
+        for (const t of targets) {
+            const target = game.players.get(t.id);
+            target.score = Math.max(0, target.score - 400);
+            thunderHits.push({ playerId: t.id, playerName: t.name });
+        }
+        for (const t of targets) {
+            const target = game.players.get(t.id);
+            if (target.ws.readyState === WebSocket.OPEN) {
+                target.ws.send(JSON.stringify({ type: 'scoreHit', amount: 400, score: target.score, byName: player.name }));
+            }
+        }
+    }
+
+    const result = {
+        type: 'answerResult',
+        correct,
+        correctIndex: questions[game.currentQuestion].c,
+        score: player.score,
+        gained,
+        powerUp,
+    };
+    if (correct && powerUp === 'thunder') result.thunderHits = thunderHits;
+    if (!correct && powerUp === 'thunder') result.thunderPenalty = 400;
+    ws.send(JSON.stringify(result));
 
     game.host.send(JSON.stringify({ type: 'playerAnswered', answeredCount: game.answeredCount, totalCount: game.players.size }));
 

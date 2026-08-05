@@ -11,6 +11,8 @@ let lastGained = 0;
 let potentialInterval = null;
 let potentialStartTime = 0;
 let potentialDuration = 0;
+let selectedPowerUp = null;
+let toastTimer = null;
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -30,6 +32,7 @@ function connect() {
             case 'gameStarted': onGameStarted(msg); break;
             case 'newQuestion': onNewQuestion(msg); break;
             case 'answerResult': onAnswerResult(msg); break;
+            case 'scoreHit': onScoreHit(msg); break;
             case 'showAnswer': onShowAnswer(msg); break;
             case 'gameFinished': onGameFinished(msg); break;
         }
@@ -66,6 +69,8 @@ function onGameStarted(msg) {
 function onNewQuestion(msg) {
     isAnswering = true;
     selectedAnswerIndex = -1;
+    selectedPowerUp = null;
+    resetPowerUps();
     currentScore = msg.questionIndex === 0 ? 0 : currentScore;
 
     document.getElementById('player-question-num').textContent = `${msg.questionIndex + 1}/${msg.totalQuestions}`;
@@ -145,7 +150,55 @@ function playerSelect(index, btn) {
     });
     btn.style.transform = 'scale(0.95)';
 
-    ws.send(JSON.stringify({ type: 'submitAnswer', answerIndex: index }));
+    setPowerUpsDisabled(true);
+
+    ws.send(JSON.stringify({ type: 'submitAnswer', answerIndex: index, powerUp: selectedPowerUp }));
+}
+
+function selectPowerUp(type) {
+    if (!isAnswering) return;
+    selectedPowerUp = selectedPowerUp === type ? null : type;
+
+    const star = document.getElementById('pu-star');
+    const thunder = document.getElementById('pu-thunder');
+    const hint = document.getElementById('powerup-hint');
+    star.classList.toggle('active', selectedPowerUp === 'star');
+    thunder.classList.toggle('active', selectedPowerUp === 'thunder');
+
+    if (selectedPowerUp === 'star') hint.textContent = '⭐ Trả lời đúng được x2 điểm';
+    else if (selectedPowerUp === 'thunder') hint.textContent = '⚡ Đúng: trừ 400đ Top 3 trên bạn · Sai: tự trừ 400đ';
+    else hint.textContent = '';
+}
+
+function resetPowerUps() {
+    const star = document.getElementById('pu-star');
+    const thunder = document.getElementById('pu-thunder');
+    const hint = document.getElementById('powerup-hint');
+    star.classList.remove('active');
+    thunder.classList.remove('active');
+    star.disabled = false;
+    thunder.disabled = false;
+    hint.textContent = '';
+}
+
+function setPowerUpsDisabled(disabled) {
+    document.getElementById('pu-star').disabled = disabled;
+    document.getElementById('pu-thunder').disabled = disabled;
+}
+
+function showToast(text, ms = 2000) {
+    const t = document.getElementById('player-toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function onScoreHit(msg) {
+    currentScore = msg.score;
+    const el = document.getElementById('player-score');
+    if (el) el.textContent = msg.score;
+    showToast(`⚡ ${msg.byName} dùng sấm sét — bạn bị trừ ${msg.amount} điểm!`);
 }
 
 function onAnswerResult(msg) {
@@ -159,6 +212,16 @@ function onAnswerResult(msg) {
         gained.textContent = `+${msg.gained}`;
         gained.className = 'player-gained show';
         setTimeout(() => { gained.className = 'player-gained'; }, 1600);
+    }
+
+    if (msg.powerUp === 'star' && msg.gained > 0) {
+        showToast('⭐ Ngôi sao hi vọng: điểm x2!');
+    } else if (msg.powerUp === 'thunder') {
+        if (msg.correct) {
+            showToast(`⚡ Sấm sét đánh ${msg.thunderHits ? msg.thunderHits.length : 0} người phía trên — mỗi người -400 điểm!`);
+        } else {
+            showToast('⚡ Trả lời sai — bạn bị trừ 400 điểm!');
+        }
     }
 }
 

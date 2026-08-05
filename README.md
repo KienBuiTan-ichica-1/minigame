@@ -127,6 +127,9 @@ https://abc123.ngrok-free.app/player.html?game=<MÃ_PHÒNG>
 - ✅ **Top 10 leaderboard** real-time (giống Kahoot)
 - ✅ 4 nút màu (đỏ 🔴 xanh dương 🔵 vàng 🟡 xanh lá 🟢)
 - ✅ Đếm ngược 20 giây mỗi câu
+- ✅ Điểm mỗi câu bắt đầu **1000**, giảm dần theo thời gian
+- ✅ **⭐ Ngôi sao hi vọng:** trả lời đúng được **x2 điểm**
+- ✅ **⚡ Sấm sét:** trả lời đúng → trừ **400 điểm** 3 người trên bạn; trả lời sai → tự bị trừ 400 điểm
 - ✅ Podium 3 vị trí cao nhất khi kết thúc
 - ✅ Giữ nguyên giao diện, câu hỏi & hiệu ứng từ bản gốc
 

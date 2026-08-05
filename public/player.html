@@ -74,6 +74,12 @@
                 <h2 class="player-question-text" id="player-question-text"></h2>
             </div>
 
+            <div class="powerup-bar">
+                <button class="powerup-btn pu-star" id="pu-star" onclick="selectPowerUp('star')">⭐ x2 điểm</button>
+                <button class="powerup-btn pu-thunder" id="pu-thunder" onclick="selectPowerUp('thunder')">⚡ Trừ Top 3</button>
+                <span class="powerup-hint" id="powerup-hint"></span>
+            </div>
+
             <div class="player-options" id="player-options">
                 <button class="player-option opt-red" data-index="0" onclick="playerSelect(0, this)">
                     <span class="opt-letter">A</span>
@@ -151,6 +157,8 @@
             </div>
         </div>
     </div>
+
+    <div id="player-toast" class="player-toast"></div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
