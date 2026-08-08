@@ -58,7 +58,11 @@ const MIME = {
     '.js': 'application/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
     '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
 };
+
+const BG_DIR = path.join(__dirname, 'immage_background');
 
 const questions = require('./questions');
 
@@ -137,8 +141,13 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    let filePath = url === '/' ? path.join(PUBLIC_DIR, 'host.html') : path.join(PUBLIC_DIR, url);
-    if (!filePath.startsWith(PUBLIC_DIR)) {
+    let filePath;
+    if (url.startsWith('/bg/')) {
+        filePath = path.join(BG_DIR, url.slice('/bg/'.length));
+    } else {
+        filePath = url === '/' ? path.join(PUBLIC_DIR, 'host.html') : path.join(PUBLIC_DIR, url);
+    }
+    if (!filePath.startsWith(PUBLIC_DIR) && !filePath.startsWith(BG_DIR)) {
         res.writeHead(403);
         res.end('Forbidden');
         return;

@@ -50,6 +50,18 @@ function loadQR(code) {
         });
 }
 
+function showQrModal() {
+    const src = document.querySelector('#qr-container img');
+    if (!src) return;
+    document.getElementById('qr-modal-frame').innerHTML = `<img src="${src.src}" alt="QR Code" class="qr-modal-image">`;
+    document.getElementById('qr-modal').classList.add('show');
+}
+
+function closeQrModal(e) {
+    const m = document.getElementById('qr-modal');
+    if (!e || e.target === m) m.classList.remove('show');
+}
+
 function loadJoinUrl(code) {
     fetch(`/api/url?code=${code}`)
         .then(r => r.text())
