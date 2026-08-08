@@ -542,14 +542,14 @@ function submitAnswer(ws, msg) {
         const elapsedSeconds = (Date.now() - (game.questionStartTime || Date.now())) / 1000;
         const speedRatio = Math.max(0, Math.min(1, 1 - Math.pow(elapsedSeconds / game.timerDuration, 2)));
         gained = Math.round(MAX_POINTS_PER_QUESTION * speedRatio);
-        if (useDevil) gained = Math.round(2500 * speedRatio);
+        if (useDevil) gained = Math.round(2000 * speedRatio);
         if (useStar) gained *= 2;
         player.score += gained;
         player.correctAnswers++;
     } else {
         player.wrongAnswers++;
-        if (useThunder) player.score = Math.max(0, player.score - 400);
-        if (useDevil) player.score = Math.max(0, player.score - 3500);
+        if (useThunder) player.score -= 400;
+        if (useDevil) player.score -= 2500;
         if (swapCorrect !== undefined) player.score -= 500;
     }
 
@@ -565,7 +565,7 @@ function submitAnswer(ws, msg) {
                     target.ws.send(JSON.stringify({ type: 'shieldBlocked', byName: player.name }));
                 }
             } else {
-                target.score = Math.max(0, target.score - 400);
+                target.score -= 400;
                 thunderHits.push({ playerId: t.id, playerName: t.name });
                 if (target.ws.readyState === WebSocket.OPEN) {
                     target.ws.send(JSON.stringify({ type: 'scoreHit', amount: 400, score: target.score, byName: player.name }));

@@ -775,7 +775,7 @@ function onAnswerResult(msg) {
             } else if (pu === 'devil') {
                 if (window.sound) window.sound.play('devil');
                 if (msg.correct) showToast(`🌑 Ngôi sao đen: được ${msg.gained} điểm!`);
-                else showToast('🌑 Ngôi sao đen: sai — bạn bị trừ 3500 điểm!');
+                else showToast('🌑 Ngôi sao đen: sai — bạn bị trừ 2500 điểm!');
             } else if (pu === 'thunder') {
                 if (window.sound) window.sound.play('thunder');
                 if (msg.correct) {
