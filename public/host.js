@@ -18,6 +18,7 @@ function connect() {
             case 'hostPowerUpPhase': onHostPowerUpPhase(msg); break;
             case 'hostNewQuestion': onHostNewQuestion(msg); break;
             case 'playerAnswered': onPlayerAnswered(msg); break;
+            case 'hostSpecial': onHostSpecial(msg); break;
             case 'hostQuestionResult': onHostQuestionResult(msg); break;
             case 'gameFinished': onGameFinished(msg); break;
         }
@@ -208,6 +209,34 @@ function startHostTimer(seconds) {
 
 function onPlayerAnswered(msg) {
     document.getElementById('answered-count').textContent = msg.answeredCount;
+}
+
+function onHostSpecial(msg) {
+    const banner = document.getElementById('host-special-banner');
+    if (!banner) return;
+    const quakeName = (msg.quakeNames && msg.quakeNames[0]) || '';
+    const wizardName = (msg.wizardNames && msg.wizardNames[0]) || '';
+    const tornadoName = (msg.tornadoNames && msg.tornadoNames[0]) || '';
+    let cls = 'wizard';
+    let text = '';
+    if (msg.quakeNames && msg.quakeNames.length) {
+        cls = 'quake';
+        text = `🌍 ${quakeName} gây ĐỘNG ĐẤT — Top 10 rung lắc!`;
+    } else if (msg.tornadoNames && msg.tornadoNames.length) {
+        cls = 'tornado';
+        text = `🌪️ ${tornadoName} gây CƠN LỐC — Top 3 bị cuốn bay đáp án!`;
+    } else if (msg.wizardNames && msg.wizardNames.length) {
+        cls = 'wizard';
+        text = `🧙 ${wizardName} dùng PHÙ THỦY — Top 3 bị đổi câu hỏi!`;
+    }
+    banner.className = 'host-special-banner show ' + cls;
+    banner.textContent = text;
+    banner.style.animation = 'none';
+    void banner.offsetWidth;
+    banner.style.animation = '';
+    if (window.sound) window.sound.play(cls === 'quake' ? 'earthquake' : cls === 'tornado' ? 'tornado' : 'wizard');
+    clearTimeout(banner._t);
+    banner._t = setTimeout(() => { banner.className = 'host-special-banner'; }, 3200);
 }
 
 function onHostQuestionResult(msg) {

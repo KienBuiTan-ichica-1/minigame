@@ -106,6 +106,60 @@ const questions = [
     }
 ];
 
+const wizardQuestions = [
+    {
+        q: "Theo tài liệu, việc phân biệt giữa tín ngưỡng và mê tín dị đoan được Đảng và Nhà nước ta nhìn nhận như thế nào?",
+        a: [
+            "Mọi hình thức tín ngưỡng, tâm linh đều là mê tín dị đoan và cần bị nghiêm cấm.",
+            "Tín ngưỡng (như thờ cúng tổ tiên) là truyền thống tốt đẹp cần phát huy, còn mê tín dị đoan là hành vi trái đạo đức, vi phạm pháp luật cần được nghiêm cấm và xử lý.",
+            "Nhà nước chỉ tôn trọng tín ngưỡng của các tôn giáo lớn, còn tín ngưỡng dân gian bị coi là mê tín.",
+            "Mê tín dị đoan là một hình thức tín ngưỡng được pháp luật bảo hộ nếu không gây hại."
+        ],
+        c: 1
+    },
+    {
+        q: "Trong các nguyên tắc giải quyết vấn đề tôn giáo, quan điểm \"lịch sử cụ thể\" đòi hỏi chúng ta phải làm gì?",
+        a: [
+            "Áp dụng một chính sách tôn giáo duy nhất cho tất cả các tôn giáo và mọi thời kỳ.",
+            "Xem xét và xử lý các vấn đề tôn giáo dựa trên bối cảnh, điều kiện kinh tế - xã hội cụ thể và đặc điểm riêng của từng tôn giáo trong từng giai đoạn lịch sử.",
+            "Coi tôn giáo là một hiện tượng bất biến, không thay đổi theo thời gian.",
+            "Chỉ tập trung vào lịch sử hình thành của tôn giáo mà bỏ qua các vấn đề hiện tại."
+        ],
+        c: 1
+    },
+    {
+        q: "Theo các tài liệu, điểm tương đồng quan trọng nào giữa tín đồ các tôn giáo ở Việt Nam đã tạo nên sức mạnh cho khối đại đoàn kết dân tộc?",
+        a: [
+            "Tất cả tín đồ đều không tham gia vào các hoạt động chính trị.",
+            "Tất cả tín đồ đều theo cùng một tôn giáo.",
+            "Phần lớn tín đồ là nhân dân lao động, có lòng yêu nước và tinh thần dân tộc sâu sắc.",
+            "Tất cả các tôn giáo đều có nguồn gốc nội sinh từ Việt Nam."
+        ],
+        c: 2
+    },
+    {
+        q: "Về vấn đề \"truyền đạo\" (truyền bá tôn giáo), quan điểm của Đảng và Nhà nước ta được thể hiện như thế nào?",
+        a: [
+            "Cho phép truyền đạo hoàn toàn tự do, không cần xin phép, ở mọi địa điểm và bằng mọi hình thức.",
+            "Cấm hoàn toàn mọi hoạt động truyền đạo trên lãnh thổ Việt Nam.",
+            "Cho phép các hoạt động truyền đạo hợp pháp theo quy định của pháp luật, đồng thời nghiêm cấm các hình thức truyền đạo trái phép, lợi dụng tôn giáo để tuyên truyền tà đạo, mê tín dị đoan và ép buộc người dân.",
+            "Chỉ cho phép các tổ chức tôn giáo nội địa truyền đạo, cấm các tổ chức quốc tế."
+        ],
+        c: 2
+    },
+    {
+        q: "Một trong những mục tiêu cao nhất của chính sách tôn giáo mà Đảng và Nhà nước ta hướng tới là gì?",
+        a: [
+            "Xóa bỏ hoàn toàn mọi tôn giáo để tiến lên chủ nghĩa xã hội.",
+            "Đưa tất cả các tôn giáo vào một tổ chức duy nhất để dễ quản lý.",
+            "Duy trì một môi trường tự do tôn giáo ổn định, hòa bình, củng cố khối đại đoàn kết toàn dân tộc và bảo vệ vững chắc Tổ quốc.",
+            "Hạn chế tối đa sự phát triển của các tôn giáo ngoại nhập để bảo vệ văn hóa truyền thống."
+        ],
+        c: 2
+    }
+];
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = questions;
+    module.exports.wizardQuestions = wizardQuestions;
 }

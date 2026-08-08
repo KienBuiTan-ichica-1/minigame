@@ -65,6 +65,7 @@ const MIME = {
 const BG_DIR = path.join(__dirname, 'immage_background');
 
 const questions = require('./questions');
+const wizardQuestions = questions.wizardQuestions || [];
 
 const games = new Map();
 
@@ -98,6 +99,18 @@ function getFakeOptions(q, n) {
     }
     shuffle(pool);
     return pool.slice(0, n);
+}
+
+function buildWizardSwap(currentQi, currentQ) {
+    const pool = wizardQuestions.length > 0 ? wizardQuestions : questions.filter((_, i) => i !== currentQi);
+    const swapQ = pool[Math.floor(Math.random() * pool.length)];
+    const fake = getFakeOptions(swapQ, 1)[0];
+    const all = shuffle(swapQ.a.concat([fake]));
+    return {
+        text: swapQ.q,
+        options: all,
+        correctIndex: all.indexOf(swapQ.a[swapQ.c]),
+    };
 }
 
 const server = http.createServer((req, res) => {
@@ -270,7 +283,7 @@ function joinGame(ws, msg) {
     if (!playerName || playerName.trim().length === 0) { ws.send(JSON.stringify({ type: 'error', message: 'Vui lòng nhập tên!' })); return; }
 
     const id = generateId();
-    const player = { id, name: playerName.trim(), ws, score: 0, correctAnswers: 0, wrongAnswers: 0, answers: [], joinedAt: Date.now(), powerUps: { star: 2, thunder: 1, devil: 1, reduce: 1, expand: 1, shield: 1 }, selectedPowerUps: [], shieldActive: false, optionMap: null };
+    const player = { id, name: playerName.trim(), ws, score: 0, correctAnswers: 0, wrongAnswers: 0, answers: [], joinedAt: Date.now(), powerUps: { star: 2, thunder: 1, devil: 1, reduce: 1, expand: 1, shield: 1, earthquake: 1, wizard: 1, tornado: 1 }, selectedPowerUps: [], shieldActive: false, optionMap: null, wizardSwap: null };
     game.players.set(id, player);
     player.ws = ws;
 
@@ -312,6 +325,7 @@ function sendQuestion(game) {
         player.selectedPowerUps = [];
         player.shieldActive = false;
         player.optionMap = null;
+        player.wizardSwap = null;
         if (player.ws.readyState === WebSocket.OPEN) {
             player.ws.send(JSON.stringify({
                 type: 'powerUpPhase',
@@ -344,13 +358,13 @@ function onSelectPowerUp(ws, msg) {
     if (!game || !playerId || game.state !== 'powerUpPhase') return;
     const player = game.players.get(playerId);
 
-    const allowed = ['star', 'thunder', 'devil', 'reduce', 'expand', 'shield'];
+    const allowed = ['star', 'thunder', 'devil', 'reduce', 'expand', 'shield', 'earthquake', 'wizard', 'tornado'];
     const selected = [];
     if (Array.isArray(msg.powerUps)) {
         for (const pu of msg.powerUps) {
-            if (allowed.includes(pu) && player.powerUps[pu] > 0 && !selected.includes(pu)) {
-                selected.push(pu);
-            }
+            if (!allowed.includes(pu) || player.powerUps[pu] <= 0 || selected.includes(pu)) continue;
+            if ((pu === 'star' && selected.includes('devil')) || (pu === 'devil' && selected.includes('star'))) continue;
+            selected.push(pu);
         }
     }
     player.selectedPowerUps = selected;
@@ -378,6 +392,20 @@ function startAnswerPhase(game) {
     }
     const fakeOptions = expandTargets.size > 0 ? getFakeOptions(q, 2) : null;
 
+    const quakeUsers = new Set();
+    const wizardUsers = new Set();
+    const tornadoUsers = new Set();
+    for (const [, player] of game.players) {
+        if (player.selectedPowerUps.includes('earthquake')) quakeUsers.add(player.id);
+        if (player.selectedPowerUps.includes('wizard')) wizardUsers.add(player.id);
+        if (player.selectedPowerUps.includes('tornado')) tornadoUsers.add(player.id);
+    }
+    const quakeTargets = quakeUsers.size > 0 ? leaderboard.slice(0, 10).filter(p => !quakeUsers.has(p.id)) : [];
+    const wizardTargets = wizardUsers.size > 0 ? leaderboard.slice(0, 3).filter(p => !wizardUsers.has(p.id)) : [];
+    const wizardTargetIds = new Set(wizardTargets.map(p => p.id));
+    const tornadoTargets = tornadoUsers.size > 0 ? leaderboard.slice(0, 3).filter(p => !tornadoUsers.has(p.id)) : [];
+    const tornadoTargetIds = new Set(tornadoTargets.map(p => p.id));
+
     for (const [, player] of game.players) {
         if (player.ws.readyState !== WebSocket.OPEN) continue;
 
@@ -385,6 +413,7 @@ function startAnswerPhase(game) {
 
         let options = q.a;
         let map = null;
+        let text = q.q;
 
         if (player.selectedPowerUps.includes('reduce')) {
             const others = q.a.map((_, i) => i).filter(i => i !== q.c);
@@ -393,6 +422,18 @@ function startAnswerPhase(game) {
             options = map.map(i => q.a[i]);
         } else if (expandTargets.has(player.id)) {
             options = q.a.concat(fakeOptions);
+        }
+
+        if (wizardTargetIds.has(player.id)) {
+            const swap = buildWizardSwap(qi, q);
+            options = swap.options;
+            text = swap.text;
+            if (!player.wizardSwap) player.wizardSwap = {};
+            player.wizardSwap[qi] = swap.correctIndex;
+        }
+
+        if (tornadoTargetIds.has(player.id)) {
+            options = options.map(() => '');
         }
 
         if (map) {
@@ -408,10 +449,46 @@ function startAnswerPhase(game) {
             type: 'newQuestion',
             questionIndex: qi,
             totalQuestions: questions.length,
-            text: q.q,
+            text,
             options,
             timeLimit: game.timerDuration,
             powerUps: { ...player.powerUps },
+            usedPowerUps: player.selectedPowerUps.slice(),
+            tornadoBlind: tornadoTargetIds.has(player.id),
+        }));
+    }
+
+    for (const t of quakeTargets) {
+        const target = game.players.get(t.id);
+        if (target && target.ws.readyState === WebSocket.OPEN) {
+            const byName = [...quakeUsers].map(id => game.players.get(id)?.name).filter(Boolean).join(', ');
+            target.ws.send(JSON.stringify({ type: 'earthquakeHit', byName }));
+        }
+    }
+    for (const t of wizardTargets) {
+        const target = game.players.get(t.id);
+        if (target && target.ws.readyState === WebSocket.OPEN) {
+            const byName = [...wizardUsers].map(id => game.players.get(id)?.name).filter(Boolean).join(', ');
+            target.ws.send(JSON.stringify({ type: 'wizardHit', byName }));
+        }
+    }
+    for (const t of tornadoTargets) {
+        const target = game.players.get(t.id);
+        if (target && target.ws.readyState === WebSocket.OPEN) {
+            const byName = [...tornadoUsers].map(id => game.players.get(id)?.name).filter(Boolean).join(', ');
+            target.ws.send(JSON.stringify({ type: 'tornadoHit', byName }));
+        }
+    }
+
+    if (quakeUsers.size > 0 || wizardUsers.size > 0 || tornadoUsers.size > 0) {
+        const quakeNames = [...quakeUsers].map(id => game.players.get(id)?.name).filter(Boolean);
+        const wizardNames = [...wizardUsers].map(id => game.players.get(id)?.name).filter(Boolean);
+        const tornadoNames = [...tornadoUsers].map(id => game.players.get(id)?.name).filter(Boolean);
+        game.host.send(JSON.stringify({
+            type: 'hostSpecial',
+            quakeNames,
+            wizardNames,
+            tornadoNames,
         }));
     }
 
@@ -441,14 +518,21 @@ function submitAnswer(ws, msg) {
     const useStar = powerUps.includes('star');
     const useDevil = powerUps.includes('devil');
     const useThunder = powerUps.includes('thunder');
+    const swapCorrect = player.wizardSwap ? player.wizardSwap[game.currentQuestion] : undefined;
 
     let realIndex = msg.answerIndex;
-    if (player.optionMap && player.optionMap[game.currentQuestion] !== undefined) {
-        const m = player.optionMap[game.currentQuestion];
-        if (msg.answerIndex >= 0 && msg.answerIndex < m.length) realIndex = m[msg.answerIndex];
+    let correct;
+    if (swapCorrect !== undefined) {
+        correct = msg.answerIndex === swapCorrect;
+        player.answers[game.currentQuestion] = msg.answerIndex;
+    } else {
+        if (player.optionMap && player.optionMap[game.currentQuestion] !== undefined) {
+            const m = player.optionMap[game.currentQuestion];
+            if (msg.answerIndex >= 0 && msg.answerIndex < m.length) realIndex = m[msg.answerIndex];
+        }
+        correct = realIndex === questions[game.currentQuestion].c;
+        player.answers[game.currentQuestion] = realIndex;
     }
-    const correct = realIndex === questions[game.currentQuestion].c;
-    player.answers[game.currentQuestion] = realIndex;
     game.answeredCount++;
 
     let gained = 0;
@@ -466,6 +550,7 @@ function submitAnswer(ws, msg) {
         player.wrongAnswers++;
         if (useThunder) player.score = Math.max(0, player.score - 400);
         if (useDevil) player.score = Math.max(0, player.score - 3500);
+        if (swapCorrect !== undefined) player.score -= 500;
     }
 
     if (correct && useThunder) {
@@ -492,7 +577,7 @@ function submitAnswer(ws, msg) {
     const result = {
         type: 'answerResult',
         correct,
-        correctIndex: questions[game.currentQuestion].c,
+        correctIndex: swapCorrect !== undefined ? swapCorrect : questions[game.currentQuestion].c,
         score: player.score,
         gained,
         powerUps,
@@ -524,7 +609,9 @@ function showCorrectAnswer(game) {
     for (const [, player] of game.players) {
         if (player.ws.readyState !== WebSocket.OPEN) continue;
         let localCorrect = q.c;
-        if (player.optionMap && player.optionMap[game.currentQuestion] !== undefined) {
+        if (player.wizardSwap && player.wizardSwap[game.currentQuestion] !== undefined) {
+            localCorrect = player.wizardSwap[game.currentQuestion];
+        } else if (player.optionMap && player.optionMap[game.currentQuestion] !== undefined) {
             localCorrect = player.optionMap[game.currentQuestion].indexOf(q.c);
         }
         player.ws.send(JSON.stringify({
