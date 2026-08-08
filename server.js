@@ -614,11 +614,13 @@ function showCorrectAnswer(game) {
         } else if (player.optionMap && player.optionMap[game.currentQuestion] !== undefined) {
             localCorrect = player.optionMap[game.currentQuestion].indexOf(q.c);
         }
+        const myPosition = leaderboard.findIndex(p => p.id === player.id) + 1;
         player.ws.send(JSON.stringify({
             type: 'showAnswer',
             correctIndex: localCorrect,
             leaderboard: top10,
             totalPlayers: game.players.size,
+            myPosition,
         }));
     }
 
@@ -646,6 +648,7 @@ function finishGame(game) {
 
     const leaderboard = buildLeaderboard(game);
     const top10 = leaderboard.slice(0, 10);
+    const winner = leaderboard[0] ? { name: leaderboard[0].name, score: leaderboard[0].score, correctAnswers: leaderboard[0].correctAnswers } : null;
 
     for (const [, player] of game.players) {
         if (player.ws.readyState === WebSocket.OPEN) {
@@ -653,6 +656,7 @@ function finishGame(game) {
             player.ws.send(JSON.stringify({
                 type: 'gameFinished',
                 finalLeaderboard: top10,
+                winner,
                 myScore: player.score,
                 correctAnswers: player.correctAnswers,
                 wrongAnswers: player.wrongAnswers,
@@ -666,6 +670,7 @@ function finishGame(game) {
     game.host.send(JSON.stringify({
         type: 'gameFinished',
         finalLeaderboard: top10,
+        winner,
         totalPlayers: game.players.size,
     }));
 }

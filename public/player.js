@@ -666,6 +666,71 @@ function onTornadoHit(msg) {
     if (msg.byName) showToast(`🌪️ ${msg.byName} gây cơn lốc — đáp án của bạn đã bị cuốn bay hết!`, 2600);
 }
 
+const FX_CONFETTI_COLORS = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#b46bd6', '#ff9f43', '#f093fb', '#48dbfb'];
+
+function fxConfetti(duration = 3500, intensity = 60) {
+    const layer = document.getElementById('fx-layer');
+    if (!layer) return;
+    const pieces = [];
+    for (let i = 0; i < intensity; i++) {
+        const el = document.createElement('div');
+        el.className = 'fx-confetti-piece';
+        const size = Math.random() * 10 + 6;
+        el.style.width = size + 'px';
+        el.style.height = (Math.random() * 8 + 4) + 'px';
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.backgroundColor = FX_CONFETTI_COLORS[Math.floor(Math.random() * FX_CONFETTI_COLORS.length)];
+        el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        el.style.setProperty('--sway', (Math.random() * 160 - 80) + 'px');
+        el.style.setProperty('--fall', (window.innerHeight * (0.9 + Math.random() * 0.4)) + 'px');
+        el.style.setProperty('--spin', (Math.random() * 720 - 360) + 'deg');
+        el.style.animationDuration = (Math.random() * 1.5 + 2) + 's';
+        el.style.animationDelay = (Math.random() * duration / 1000) + 's';
+        layer.appendChild(el);
+        pieces.push(el);
+    }
+    setTimeout(() => pieces.forEach(p => p.remove()), duration + 2500);
+}
+
+function fxFireworks(duration = 4000) {
+    const layer = document.getElementById('fx-layer');
+    if (!layer) return;
+    const start = Date.now();
+    const boomTimer = setInterval(() => {
+        if (Date.now() - start > duration) { clearInterval(boomTimer); return; }
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight * 0.5 + window.innerHeight * 0.05;
+        const color = FX_CONFETTI_COLORS[Math.floor(Math.random() * FX_CONFETTI_COLORS.length)];
+        const fw = document.createElement('div');
+        fw.className = 'fx-firework';
+        fw.style.left = x + 'px';
+        fw.style.top = y + 'px';
+        const boom = document.createElement('div');
+        boom.className = 'fx-firework-boom';
+        boom.style.background = color;
+        boom.style.boxShadow = `0 0 20px 6px ${color}`;
+        fw.appendChild(boom);
+        for (let i = 0; i < 18; i++) {
+            const spark = document.createElement('div');
+            spark.className = 'fx-firework-spark';
+            spark.style.background = color;
+            spark.style.setProperty('--dx', (Math.cos(i / 18 * Math.PI * 2) * 90) + 'px');
+            spark.style.setProperty('--dy', (Math.sin(i / 18 * Math.PI * 2) * 90) + 'px');
+            fw.appendChild(spark);
+        }
+        layer.appendChild(fw);
+        setTimeout(() => fw.remove(), 2200);
+    }, 350);
+}
+
+function fxCelebrate() {
+    const layer = document.getElementById('fx-layer');
+    if (layer) layer.innerHTML = '';
+    spawnFx('<div class="fx-win-flash"></div>');
+    fxConfetti(5000, 90);
+    fxFireworks(5000);
+}
+
 function onScoreHit(msg) {
     currentScore = msg.score;
     const el = document.getElementById('player-score');
@@ -753,6 +818,7 @@ function onShieldBlocked(msg) {
 
 function onShowAnswer(msg) {
     isAnswering = false;
+    if (window.sound) window.sound.play('timeUp');
 
     const btns = document.querySelectorAll('.player-option');
     const correctBtn = btns[msg.correctIndex];
@@ -765,29 +831,67 @@ function onShowAnswer(msg) {
 
     setTimeout(() => {
         showScreen('player-result-screen');
+        clearFxLayer();
+        clearAnswerFxLayer();
+        clearQuestionDebuffs();
 
-        document.getElementById('player-result-icon').textContent = '📊';
-        document.getElementById('player-result-title').textContent = 'Kết quả';
         document.getElementById('player-result-score').textContent = `+${lastGained} điểm`;
         document.getElementById('player-result-total-score').textContent = currentScore;
         document.getElementById('player-result-waiting').textContent = '';
 
+        let myPosition = msg.myPosition || 0;
+        if (!myPosition && Array.isArray(msg.leaderboard)) {
+            msg.leaderboard.forEach(p => { if (p.id === playerId) myPosition = p.position; });
+        }
+        document.getElementById('player-result-rank-badge').textContent = `#${myPosition}`;
+        document.getElementById('player-result-rank-total').textContent =
+            msg.totalPlayers || (Array.isArray(msg.leaderboard) ? msg.leaderboard.length : 0);
+        document.getElementById('player-result-myrank').style.display = 'flex';
+
         const lbContent = document.getElementById('player-lb-content');
         lbContent.innerHTML = '';
-        msg.leaderboard.forEach((p, i) => {
-            const row = document.createElement('div');
-            row.className = 'plb-row';
-            const medals = ['🥇', '🥈', '🥉'];
-            const isMe = p.id === playerId;
-            row.innerHTML = `
-                <span class="plb-pos">${i < 3 ? medals[i] : `#${p.position}`}</span>
-                <span class="plb-name ${isMe ? 'plb-me' : ''}">${escapeHtml(p.name)}</span>
-                <span class="plb-score">${p.score}</span>
-            `;
-            lbContent.appendChild(row);
-        });
+        if (Array.isArray(msg.leaderboard)) {
+            msg.leaderboard.forEach((p, i) => {
+                const row = document.createElement('div');
+                const medals = ['🥇', '🥈', '🥉'];
+                const isMe = p.id === playerId;
+                row.className = 'plb-row' + (isMe ? ' plb-row-me' : '');
+                row.innerHTML = `
+                    <span class="plb-pos">${i < 3 ? medals[i] : `#${p.position}`}</span>
+                    <span class="plb-name ${isMe ? 'plb-me' : ''}">${escapeHtml(p.name)}</span>
+                    <span class="plb-score">${p.score}</span>
+                `;
+                lbContent.appendChild(row);
+            });
+        }
         document.getElementById('player-leaderboard').style.display = 'block';
+        requestAnimationFrame(() => {
+            const me = lbContent.querySelector('.plb-row-me');
+            if (me) lbContent.scrollTop = me.offsetTop - lbContent.clientHeight / 2 + me.clientHeight / 2;
+            updateResultLbScroll();
+        });
     }, 1500);
+}
+
+function updateResultLbScroll() {
+    const body = document.getElementById('player-lb-content');
+    const up = document.getElementById('player-lb-scroll-up');
+    const down = document.getElementById('player-lb-scroll-down');
+    if (!body || !up || !down) return;
+    const scrollable = body.scrollHeight > body.clientHeight + 4;
+    up.style.display = scrollable ? 'flex' : 'none';
+    down.style.display = scrollable ? 'flex' : 'none';
+    if (up.classList) {
+        up.classList.toggle('disabled', body.scrollTop <= 2);
+        down.classList.toggle('disabled', body.scrollTop + body.clientHeight >= body.scrollHeight - 2);
+    }
+}
+
+function scrollResultLb(dir) {
+    const body = document.getElementById('player-lb-content');
+    if (!body) return;
+    body.scrollBy({ top: dir * body.clientHeight * 0.7, behavior: 'smooth' });
+    setTimeout(updateResultLbScroll, 300);
 }
 
 function escapeHtml(text) {
@@ -814,6 +918,11 @@ function createParticles() {
 
 function onGameFinished(msg) {
     showScreen('player-final-screen');
+    fxCelebrate();
+    if (window.sound) {
+        window.sound.play('celebrate');
+        window.sound.startMusic();
+    }
 
     document.getElementById('final-stat-score').textContent = msg.myScore;
     document.getElementById('final-stat-correct').textContent = msg.correctAnswers;
@@ -831,20 +940,29 @@ function onGameFinished(msg) {
     else icon = '💪';
     document.getElementById('final-trophy').textContent = icon;
 
+    const winnerBanner = document.getElementById('p-winner-banner');
+    if (msg.winner) {
+        document.getElementById('p-winner-name').textContent = msg.winner.name;
+        document.getElementById('p-winner-score').textContent = `${msg.winner.score} điểm · ✅ ${msg.winner.correctAnswers} câu đúng`;
+        winnerBanner.style.display = 'flex';
+    }
+
     const lbContent = document.getElementById('player-final-lb');
     lbContent.innerHTML = '';
     const medals = ['🥇', '🥈', '🥉'];
-    msg.finalLeaderboard.forEach((p, i) => {
-        const row = document.createElement('div');
-        row.className = 'plb-row final-row';
-        const isMe = p.id === playerId;
-        row.innerHTML = `
-            <span class="plb-pos">${i < 3 ? medals[i] : `#${p.position}`}</span>
-            <span class="plb-name ${isMe ? 'plb-me' : ''}">${escapeHtml(p.name)}</span>
-            <span class="plb-score">${p.score}</span>
-        `;
-        lbContent.appendChild(row);
-    });
+    if (Array.isArray(msg.finalLeaderboard)) {
+        msg.finalLeaderboard.forEach((p, i) => {
+            const isMe = p.id === playerId;
+            const row = document.createElement('div');
+            row.className = 'plb-row final-row' + (isMe ? ' plb-row-me' : '');
+            row.innerHTML = `
+                <span class="plb-pos">${i < 3 ? medals[i] : `#${p.position}`}</span>
+                <span class="plb-name ${isMe ? 'plb-me' : ''}">${escapeHtml(p.name)}</span>
+                <span class="plb-score">${p.score}</span>
+            `;
+            lbContent.appendChild(row);
+        });
+    }
 
     const thankYou = document.querySelector('.thank-you-message');
     if (thankYou) thankYou.style.display = 'block';

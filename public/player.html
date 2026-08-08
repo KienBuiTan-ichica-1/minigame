@@ -132,16 +132,27 @@
         <!-- ANSWER RESULT SCREEN -->
         <div id="player-result-screen" class="screen">
             <div class="result-card" id="player-result-card">
-                <div class="player-result-icon" id="player-result-icon">✅</div>
-                <h2 class="player-result-title" id="player-result-title">Chính xác!</h2>
-                <div class="player-result-score" id="player-result-score">+10</div>
-                <div class="player-result-total">Tổng: <span id="player-result-total-score">0</span> điểm</div>
+                <h2 class="player-result-title">🏆 Bảng xếp hạng</h2>
+
+                <div class="player-result-myrank" id="player-result-myrank">
+                    <span class="pr-rank-badge" id="player-result-rank-badge">#1</span>
+                    <span class="pr-rank-total">/ <span id="player-result-rank-total">0</span> người</span>
+                </div>
+
+                <div class="player-result-line">
+                    <span class="player-result-score" id="player-result-score">+10 điểm</span>
+                    <span class="player-result-total">Tổng: <span id="player-result-total-score">0</span> điểm</span>
+                </div>
 
                 <div class="player-result-waiting">Đang chờ kết quả...</div>
 
                 <div class="player-leaderboard" id="player-leaderboard">
-                    <h4 class="lb-mini-title">🏆 Bảng xếp hạng</h4>
-                    <div id="player-lb-content"></div>
+                    <div class="player-lb-header">
+                        <span class="player-lb-header-title">📋 Danh sách</span>
+                        <button class="player-lb-scroll" id="player-lb-scroll-up" onclick="scrollResultLb(-1)">▲</button>
+                        <button class="player-lb-scroll" id="player-lb-scroll-down" onclick="scrollResultLb(1)">▼</button>
+                    </div>
+                    <div class="player-lb-scrollable" id="player-lb-content"></div>
                 </div>
             </div>
         </div>
@@ -156,6 +167,15 @@
 
                 <div class="final-trophy" id="final-trophy">🏆</div>
                 <h1 class="final-title">Hoàn thành!</h1>
+
+                <div class="winner-banner" id="p-winner-banner" style="display:none;">
+                    <span class="winner-crown">👑</span>
+                    <div class="winner-info">
+                        <div class="winner-label">Người chiến thắng</div>
+                        <div class="winner-name" id="p-winner-name">—</div>
+                        <div class="winner-score" id="p-winner-score"></div>
+                    </div>
+                </div>
 
                 <div class="final-rank-section">
                     <div class="final-rank-badge" id="final-rank-badge">#1</div>
@@ -188,6 +208,8 @@
     </div>
 
     <div id="player-toast" class="player-toast"></div>
+    <div id="fx-layer" class="fx-layer"></div>
+    <div id="answer-fx-layer" class="answer-fx-layer"></div>
 
     <button class="theme-fab" id="theme-fab" onclick="toggleThemeModal()" title="Chọn skin">💜</button>
 
@@ -210,8 +232,8 @@
             document.getElementById('code-input').value = urlGameCode;
         }
     </script>
-    <script src="sound.js?v=9"></script>
     <script src="theme.js?v=9"></script>
+    <script src="sound.js?v=9"></script>
     <script src="player.js?v=9"></script>
 </body>
 </html>

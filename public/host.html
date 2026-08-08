@@ -166,6 +166,14 @@
                 </div>
                 <h1 class="result-title">Kết thúc!</h1>
                 <p class="result-message">Tổng kết điểm số</p>
+                <div class="winner-banner" id="winner-banner" style="display:none;">
+                    <span class="winner-crown">👑</span>
+                    <div class="winner-info">
+                        <div class="winner-label">Người chiến thắng</div>
+                        <div class="winner-name" id="winner-name">—</div>
+                        <div class="winner-score" id="winner-score"></div>
+                    </div>
+                </div>
 
                 <div class="final-leaderboard-container" id="final-leaderboard-container">
                     <div class="podium" id="podium"></div>
@@ -184,7 +192,8 @@
 
     <button class="sound-fab" id="sound-fab" onclick="toggleSound()" title="Bật/tắt âm thanh">🔊</button>
 
-    <div class="host-special-banner" id="host-special-banner"></div>
+    <div id="host-special-banner" class="host-special-banner"></div>
+    <div id="fx-layer" class="fx-layer"></div>
 
     <div class="qr-modal" id="qr-modal" onclick="closeQrModal(event)">
         <div class="qr-modal-card">
@@ -204,8 +213,8 @@
         </div>
     </div>
 
-    <script src="sound.js?v=9"></script>
     <script src="theme.js?v=9"></script>
+    <script src="sound.js?v=9"></script>
     <script src="host.js?v=9"></script>
 </body>
 </html>

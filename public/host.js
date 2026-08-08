@@ -294,12 +294,82 @@ function onHostQuestionResult(msg) {
     }
 }
 
+const FX_CONFETTI_COLORS = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#b46bd6', '#ff9f43', '#f093fb', '#48dbfb'];
+
+function fxConfetti(duration = 3500, intensity = 60) {
+    const layer = document.getElementById('fx-layer');
+    if (!layer) return;
+    const pieces = [];
+    for (let i = 0; i < intensity; i++) {
+        const el = document.createElement('div');
+        el.className = 'fx-confetti-piece';
+        const size = Math.random() * 10 + 6;
+        el.style.width = size + 'px';
+        el.style.height = (Math.random() * 8 + 4) + 'px';
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.backgroundColor = FX_CONFETTI_COLORS[Math.floor(Math.random() * FX_CONFETTI_COLORS.length)];
+        el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        el.style.setProperty('--sway', (Math.random() * 160 - 80) + 'px');
+        el.style.setProperty('--fall', (window.innerHeight * (0.9 + Math.random() * 0.4)) + 'px');
+        el.style.setProperty('--spin', (Math.random() * 720 - 360) + 'deg');
+        el.style.animationDuration = (Math.random() * 1.5 + 2) + 's';
+        el.style.animationDelay = (Math.random() * duration / 1000) + 's';
+        layer.appendChild(el);
+        pieces.push(el);
+    }
+    setTimeout(() => pieces.forEach(p => p.remove()), duration + 2500);
+}
+
+function fxFireworks(duration = 4000) {
+    const layer = document.getElementById('fx-layer');
+    if (!layer) return;
+    const start = Date.now();
+    const boomTimer = setInterval(() => {
+        if (Date.now() - start > duration) { clearInterval(boomTimer); return; }
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight * 0.5 + window.innerHeight * 0.05;
+        const color = FX_CONFETTI_COLORS[Math.floor(Math.random() * FX_CONFETTI_COLORS.length)];
+        const fw = document.createElement('div');
+        fw.className = 'fx-firework';
+        fw.style.left = x + 'px';
+        fw.style.top = y + 'px';
+        const boom = document.createElement('div');
+        boom.className = 'fx-firework-boom';
+        boom.style.background = color;
+        boom.style.boxShadow = `0 0 20px 6px ${color}`;
+        fw.appendChild(boom);
+        for (let i = 0; i < 18; i++) {
+            const spark = document.createElement('div');
+            spark.className = 'fx-firework-spark';
+            spark.style.background = color;
+            spark.style.setProperty('--dx', (Math.cos(i / 18 * Math.PI * 2) * 90) + 'px');
+            spark.style.setProperty('--dy', (Math.sin(i / 18 * Math.PI * 2) * 90) + 'px');
+            fw.appendChild(spark);
+        }
+        layer.appendChild(fw);
+        setTimeout(() => fw.remove(), 2200);
+    }, 350);
+}
+
+function fxCelebrate() {
+    const layer = document.getElementById('fx-layer');
+    if (layer) layer.innerHTML = '';
+    layer.insertAdjacentHTML('beforeend', '<div class="fx-win-flash"></div>');
+    fxConfetti(5000, 90);
+    fxFireworks(5000);
+}
+
 function hostNextQuestion() {
     ws.send(JSON.stringify({ type: 'nextQuestion' }));
 }
 
 function onGameFinished(msg) {
     showScreen('final-screen');
+    fxCelebrate();
+    if (window.sound) {
+        window.sound.play('celebrate');
+        window.sound.startMusic();
+    }
 
     const top10 = msg.finalLeaderboard;
     const podium = document.getElementById('podium');
@@ -346,6 +416,13 @@ function onGameFinished(msg) {
     });
 
     document.getElementById('final-icon').textContent = '🏆';
+
+    const winnerBanner = document.getElementById('winner-banner');
+    if (msg.winner) {
+        document.getElementById('winner-name').textContent = msg.winner.name;
+        document.getElementById('winner-score').textContent = `${msg.winner.score} điểm · ✅ ${msg.winner.correctAnswers} câu đúng`;
+        winnerBanner.style.display = 'flex';
+    }
 }
 
 function hostEndGame() {
