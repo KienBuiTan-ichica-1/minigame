@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Xã hội chủ nghĩa - Trả lời</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700&family=Poppins:wght@500;600;700;800&family=Nunito:wght@600;700;800&family=Space+Grotesk:wght@500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body class="player-body">
     <div class="bg-shapes">
@@ -188,6 +188,8 @@
 
     <button class="theme-fab" id="theme-fab" onclick="toggleThemeModal()" title="Chọn skin">💜</button>
 
+    <button class="sound-fab" id="sound-fab" onclick="toggleSound()" title="Bật/tắt âm thanh">🔊</button>
+
     <div class="theme-modal" id="theme-modal" onclick="closeThemeModal(event)">
         <div class="theme-modal-card">
             <div class="theme-modal-header">
@@ -205,7 +207,8 @@
             document.getElementById('code-input').value = urlGameCode;
         }
     </script>
-    <script src="theme.js"></script>
-    <script src="player.js"></script>
+    <script src="sound.js?v=9"></script>
+    <script src="theme.js?v=9"></script>
+    <script src="player.js?v=9"></script>
 </body>
 </html>

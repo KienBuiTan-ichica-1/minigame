@@ -78,6 +78,7 @@ function onThemeChanged(msg) {
 }
 
 function onGameStarted(msg) {
+    if (window.sound) window.sound.play('start');
     showScreen('player-quiz-screen');
 }
 
@@ -129,6 +130,7 @@ function startPhaseCountdown(seconds) {
             banner.textContent = '⏳ Hết giờ chọn item!';
         } else {
             banner.textContent = `⏳ Chọn item — còn ${remaining}s`;
+            if (remaining <= 5 && window.sound) window.sound.play('tick');
         }
     }, 1000);
 }
@@ -212,6 +214,7 @@ function playerSelect(index, btn) {
     if (!isAnswering) return;
     isAnswering = false;
     selectedAnswerIndex = index;
+    if (window.sound) window.sound.play('click');
 
     const btns = document.querySelectorAll('.player-option');
     btns.forEach(b => b.disabled = true);
@@ -466,6 +469,7 @@ function joinGame() {
     const codeInput = document.getElementById('code-input');
     const name = nameInput.value.trim();
     if (!name) return;
+    if (window.sound) window.sound.play('click');
 
     gameCode = (codeInput.value || '').trim().toUpperCase();
     if (!gameCode) {

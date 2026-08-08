@@ -83,6 +83,7 @@ function copyJoinLink() {
 function onPlayerJoined(msg) {
     document.getElementById('player-count').textContent = msg.count;
     document.getElementById('player-count-badge').textContent = msg.count;
+    if (window.sound) window.sound.play('join');
 
     const list = document.getElementById('player-list');
     if (msg.count === 1) list.innerHTML = '';
@@ -99,6 +100,7 @@ function onPlayerJoined(msg) {
 function onPlayerLeft(msg) {
     document.getElementById('player-count').textContent = msg.count;
     document.getElementById('player-count-badge').textContent = msg.count;
+    if (window.sound) window.sound.play('leave');
 
     const el = document.getElementById(`player-${msg.playerId}`);
     if (el) el.remove();
@@ -128,6 +130,7 @@ function showScreen(id) {
 }
 
 function startGame() {
+    if (window.sound) window.sound.play('start');
     ws.send(JSON.stringify({ type: 'startGame' }));
 }
 
@@ -216,6 +219,7 @@ function onHostQuestionResult(msg) {
     document.querySelectorAll('#host-options .option-btn').forEach((btn, i) => {
         if (i === correctIndex) btn.classList.add('correct');
     });
+    if (window.sound) window.sound.play('correct');
 
     const resultArea = document.getElementById('host-result-area');
     resultArea.style.display = 'block';
